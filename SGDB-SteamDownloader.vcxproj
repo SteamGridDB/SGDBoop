@@ -100,9 +100,11 @@
   <ItemGroup>
     <ClCompile Include="curl-helper.c" />
     <ClCompile Include="sgdb-steamdownloader.c" />
+    <ClCompile Include="string-helpers.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="curl-helper.h" />
+    <ClInclude Include="string-helpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -21,9 +21,15 @@
     <ClCompile Include="sgdb-steamdownloader.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="string-helpers.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="curl-helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string-helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
