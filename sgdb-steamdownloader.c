@@ -113,7 +113,7 @@ int createURIprotocol() {
 		GetModuleFileName(NULL, cwd, MAX_PATH);
 
 		char* regeditCommand = malloc(2028);
-		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
+		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"cmd /c start /min \\\"\\\" \\\"");
 		strcat(regeditCommand, cwd);
 		strcat(regeditCommand, "\\\" \\\"%1\\\"\" /f");
 
@@ -278,7 +278,7 @@ int main(int argc, char** argv)
 		char* assetUrl = apiValues[1];
 		char* orientation = apiValues[2];
 
-		printf("Orientation: %s\n", orientation);
+		// printf("Orientation: %s\n", orientation);
 
 		// If no valid URL was returned, return
 		if (assetUrl == NULL)
