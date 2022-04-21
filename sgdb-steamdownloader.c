@@ -10,10 +10,12 @@
 #include <curl/curl.h>
 #include "curl-helper.h"
 
-char *getAssetURL(char *grid_type, char *grid_id)
+char** callAPI(char *grid_type, char *grid_id)
 {
-    char authHeader[] = "Authorization: Bearer a25e348c17fa6e8d16ca49ed59d2ac30";
+    char authHeader[] = "Authorization: Bearer <bopToken>";
     char *url = malloc(512);
+    char** valuesArray = malloc(1024);
+
     strcpy(url, "https://www.steamgriddb.com/api/sgdbop/");
     strcat(url, grid_type);
     strcat(url, "/");
@@ -31,22 +33,26 @@ char *getAssetURL(char *grid_type, char *grid_id)
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
-headers = curl_slist_append(headers, authHeader);
-curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-res = curl_easy_perform(curl);
-curl_easy_cleanup(curl);
+        headers = curl_slist_append(headers, authHeader);
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
 
-if (res != CURLE_OK)
-{
-    return NULL;
-}
+        if (res != CURLE_OK)
+        {
+            return NULL;
+        }
 
-return s.ptr;
+        valuesArray[0] = s.ptr;
+        valuesArray[1] = strstr(s.ptr, ",");
+        valuesArray[1][0] = '\0';
+        valuesArray[1] += 1;
+        return valuesArray;
     }
     return NULL;
 }
 
-char* downloadAssetFile(char* url, char* app_id, char* type)
+char* downloadAssetFile(char* app_id, char* url, char* type)
 {
     char* tempPath = getenv("TEMP");
     CURL* curl;
@@ -64,7 +70,6 @@ char* downloadAssetFile(char* url, char* app_id, char* type)
         strcat(outfilename, "_logo");
     }
     strcat(outfilename, ".png");
-    printf("%s\n", outfilename);
 
     curl = curl_easy_init();
     if (curl) {
@@ -84,7 +89,7 @@ char* downloadAssetFile(char* url, char* app_id, char* type)
 
 int createURIprotocol() {
     if (OS_Windows) {
-        wchar_t cwd[MAX_PATH];
+        char cwd[MAX_PATH];
         //char buff[sizeof(cwd) + 1];
         GetModuleFileName(NULL, cwd, MAX_PATH);
 
@@ -111,6 +116,7 @@ int createURIprotocol() {
     }
 }
 
+// Check if a string starts with a given substring
 // https://stackoverflow.com/a/15515276/16642426
 int startsWith(const char* a, const char* b)
 {
@@ -118,25 +124,30 @@ int startsWith(const char* a, const char* b)
     return 0;
 }
 
-// https://stackoverflow.com/a/53360624/16642426
-void replace_str(char* str, char* org, char* rep)
-{
-    char* ToRep = strstr(str, org);
-    char* Rest = (char*)malloc(strlen(ToRep));
-    strcpy(Rest, ((ToRep)+strlen(org)));
+// Copy a file to another directory
+// https://stackoverflow.com/a/28797171/16642426
+int copyfile(char* infilepath, char* infilename, char* outfileDir) {
+    FILE* infile;
+    FILE* outfile;
+    char outfilename[MAX_PATH];
 
-    strcpy(ToRep, rep);
-    strcat(ToRep, Rest);
+    infile = fopen(infilepath, "r");
+    if (infile == NULL) {
+        return 1;
+    }
+    strcpy(outfilename, outfileDir);
+    strcat(outfilename, infilename);
+    outfile = fopen(outfilename, "w");
+    fclose(infile);
+    fclose(outfile);
 
-    free(Rest);
+    return 0;
 }
 
 int main(int argc, char** argv)
 {
-    // char* type = malloc(128);
-     //char* app_id = malloc(128);
-     // No arguments, register program
-    if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
+    // If no arguments were given, register the program
+    if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb:%5C%5C"))) {
         // Create the sgdb URI protocol
         if (createURIprotocol() == 1) {
             return 1;
@@ -146,21 +157,20 @@ int main(int argc, char** argv)
         // If arguments were passed, run program normally
 
         // If the arguments aren't of the SGDB URI, return with an error
-        if (startsWith(argv[1], "sgdb://")) {
+        if (startsWith(argv[1], "sgdb:%5C%5Cbop")) {
             return 1;
         }
 
         // Get the params from the string
-        char* app_id = strstr(argv[1], "sgdb:%5C%5C") + strlen("sgdb:%5C%5C");
-        char* type = strstr(app_id, "%5C");
-        type[0] = '\0';         // End app_id string
-        type += 3;              // Move 3 places, the size of %5C
-        char* grid_id = strstr(type, "%5C");
-        grid_id[0] = '\0';
-        grid_id += 3;
+        char* type = strstr(argv[1], "sgdb://bop/") + strlen("sgdb://bop/");
+        char* grid_id = strstr(type, "/");
+        grid_id[0] = '\0';         // End app_id string
+        grid_id += 1;              // Move 1 place
 
         // Get asset URL
-        char* assetUrl = getAssetURL(type, grid_id);
+        char** apiValues = callAPI(type, grid_id);
+        char* app_id = apiValues[0];
+        char* assetUrl = apiValues[1];
 
         // If no valid URL was returned, return
         if (assetUrl == NULL)
@@ -168,8 +178,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        printf("%s\n", assetUrl);
-        downloadAssetFile(assetUrl, app_id, type);
+        downloadAssetFile(app_id, assetUrl, type);
     }
 
     return 0;
