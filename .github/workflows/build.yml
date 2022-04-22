@@ -8,20 +8,12 @@ on:
   release:
     types: [ created ]
 
-env:
-  # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Release
-
 permissions:
   contents: read
 
 jobs:
   windows:
+    name: "Build Windows"
     runs-on: windows-latest
 
     steps:
@@ -39,18 +31,28 @@ jobs:
     - name: Integrate vcpkg
       run: vcpkg integrate install
 
-    - name: Build
+    - name: Build Release
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:VcpkgEnableManifest=true /property:Configuration=Release
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
+      
+    - name: Build Debug
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
       
     - uses: actions/upload-artifact@v3
       with:
-        name: win-build
+        name: win64-release
         path: |
           x64/Release/SGDBop.exe
           x64/Release/libcurl.dll
           x64/Release/zlib1.dll
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: win64-debug
+        path: x64/Debug/*
   linux:
+    name: "Build Linux"
     runs-on: ubuntu-latest
     env:
       OS: Linux
@@ -71,16 +73,18 @@ jobs:
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
+    name: "Upload Artifacts"
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write
     needs: [windows,linux]
     steps:
     - uses: actions/download-artifact@v3
       with:
         path: artifacts
 
-    - name: Archive Windows Build
-      run: 7z a sgdbop-win-x64.zip ./artifacts/win-build/*
+    - name: Archive Windows Release Build
+      run: 7z a sgdbop-win64.zip ./artifacts/win64-release/*
 
     - uses: ncipollo/release-action@v1
       with:
@@ -91,4 +95,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "artifacts/linux-build/SGDBop,sgdbop-win-x64.zip"
+        artifacts: "artifacts/linux-build/SGDBop,sgdbop-win64.zip"
