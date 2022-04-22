@@ -72,6 +72,7 @@ jobs:
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-latest
+    permissions: write-all
     needs: [windows,linux]
     steps:
     - uses: actions/download-artifact@v3
