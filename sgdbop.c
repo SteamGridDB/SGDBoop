@@ -2,6 +2,7 @@
 #define OS_Windows 0
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #define OS_Windows 1
+#include <windows.h>
 #endif
 
 #include <stdlib.h>
@@ -115,7 +116,7 @@ int createURIprotocol() {
 		char* regeditCommand = malloc(2028);
 		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
 		strcat(regeditCommand, cwd);
-		strcat(regeditCommand, "\\\" \\\"%1\\\"\" /f");
+		strcat(regeditCommand, "\\\" \\\"%1\\\ -new_console:sgdb"\" /f");
 
 		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
@@ -264,6 +265,12 @@ int main(int argc, char** argv)
 		}
 	}
 	else {
+
+		if (OS_Windows) {
+			HWND hwndConsole = GetConsoleWindow();
+			MoveWindow(hwndConsole, -3000, -3000, 0, 0, FALSE);
+		}
+
 		// If arguments were passed, run program normally
 
 		// If the arguments aren't of the SGDB URI, return with an error
@@ -286,16 +293,19 @@ int main(int argc, char** argv)
 		char* orientation = apiValues[1];
 		char* assetUrl = apiValues[2];
 
+		// Download asset file
 		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation);
 		if (outfilename == NULL) {
 			return 83;
 		}
-		
+
+		// Get Steam base dir
 		char* steamDir = getSteamDir();
 		if (steamDir == NULL) {
 			return 84;
 		}
-		
+
+		// Copy the downloaded file to Steam
 		int copyResult = copyFile(outfilename, steamDir);
 		if (outfilename > 0) {
 			return copyResult;
