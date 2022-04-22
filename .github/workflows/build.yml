@@ -42,6 +42,11 @@ jobs:
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:VcpkgEnableManifest=true /property:Configuration=Release
+      
+    - uses: actions/upload-artifact@v3
+      with:
+        name: win-build
+        path: x64/Release/
   linux:
     runs-on: ubuntu-latest
     env:
@@ -55,16 +60,24 @@ jobs:
 
     - name: Build
       run: make
+      
+    - uses: actions/upload-artifact@v3
+      with:
+        name: linux-build
+        path: SGDBop
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-latest
     needs: [windows,linux]
-    permissions:
-      contents: write
     steps:
-    - name: Build
-      run: ls
+    - uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Display structure of downloaded files
+      run: ls -R
+
     - uses: ncipollo/release-action@v1
       with:
         allowUpdates: true
@@ -74,4 +87,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "SGDBop,x64/Release/*"
+        artifacts: "artifacts/linux-build/SGDBop,artifacts/win-build/*"
