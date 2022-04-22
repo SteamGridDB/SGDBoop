@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  release:
+    types: [ created ]
 
 env:
   # Path to the solution file relative to the root of the project.
@@ -55,11 +57,14 @@ jobs:
       run: make
 
   release:
+    if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-latest
     needs: [windows,linux]
     permissions:
       contents: write
     steps:
+    - name: Build
+      run: ls
     - uses: ncipollo/release-action@v1
       with:
         allowUpdates: true
@@ -67,6 +72,6 @@ jobs:
         omitBody: true
         prerelease: true
         replacesArtifacts: true
-        tag: ${GITHUB_REF}
-        commit: ${GITHUB_REF_NAME}
-        artifacts: "x64/Release/SGDBop.exe"
+        tag: ${{github.event.release.tag_name}}
+        commit: ${{github.sha}}
+        artifacts: "SGDBop,x64/Release/*"
