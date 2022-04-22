@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SGDB-SteamDownloader", "SGDB-SteamDownloader.vcxproj", "{6534F5BD-C8B8-43C9-BFC4-239DC9627045}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SGDBop", "SGDBop-VS.vcxproj", "{6534F5BD-C8B8-43C9-BFC4-239DC9627045}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
