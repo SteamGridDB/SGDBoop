@@ -46,7 +46,10 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: win-build
-        path: x64/Release/
+        path: |
+          x64/Release/SGDBop.exe
+          x64/Release/libcurl.dll
+          x64/Release/zlib1.dll
   linux:
     runs-on: ubuntu-latest
     env:
@@ -75,8 +78,8 @@ jobs:
       with:
         path: artifacts
 
-    - name: Display structure of downloaded files
-      run: ls -R
+    - name: Archive Windows Build
+      run: 7z a sgdbop-win-x64.zip ./artifacts/win-build/*
 
     - uses: ncipollo/release-action@v1
       with:
@@ -87,4 +90,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "artifacts/linux-build/SGDBop,artifacts/win-build/*"
+        artifacts: "artifacts/linux-build/SGDBop,sgdbop-win-x64.zip"
