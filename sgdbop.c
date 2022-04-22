@@ -71,7 +71,8 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation)
 		tempPath = getenv("TEMP");
 	}
 	else {
-		tempPath = getenv("TMPDIR");
+		tempPath = malloc(512);
+		strcpy(tempPath, "/tmp");
 	}
 
 	CURL* curl;
@@ -138,6 +139,14 @@ int createURIprotocol() {
 		system("pause");
 		return 0;
 	}
+	else {
+		int err = system("xdg-settings --help >/dev/null 2>&1");
+		if (err != 0) {
+			printf("Please install xdg-utils (specifically xdg-settings) to run this program");
+			system("pause");
+			return 1;
+		}
+	}
 }
 
 // Get Steam's installation directory
@@ -175,7 +184,8 @@ char* getSteamDir() {
 		}
 	}
 	else {
-		strcpy(steamBaseDir, "~/.steam");
+		strcpy(steamBaseDir, getenv("HOME"));
+		strcat(steamBaseDir, "/.steam/steam");
 	}
 
 	strcpy(steamConfigFile, steamBaseDir);
@@ -192,7 +202,7 @@ char* getSteamDir() {
 			char* stringEnd = strstr(steamid, "\"");
 			stringEnd[0] = '\0';
 		}
-		else if (strstr(line, "mostrecent") && strstr(line, "\"1\"")) {
+		else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
 			// Found line mostrecent
 			unsigned long long steamidLongLong = atoll(steamid);
 			steamidLongLong -= 76561197960265728;
