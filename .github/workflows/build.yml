@@ -37,7 +37,7 @@ jobs:
       
     - name: Build Debug
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
       
     - uses: actions/upload-artifact@v3
       with:
