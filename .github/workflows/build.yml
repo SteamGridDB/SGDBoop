@@ -1,4 +1,4 @@
-name: Build Windows
+name: Build Release
 
 on:
   push:
@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
 
     steps:
@@ -33,7 +33,22 @@ jobs:
       with:
         runVcpkgInstall: true
         vcpkgGitCommitId: 'e809a42f87565e803b2178a0c11263f462d1800a'
+        
+    - name: Integrate vcpkg
+      run: vcpkg integrate install
 
     - name: Build
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install libcurl
+      run: sudo apt-get install -y libcurl4-openssl-dev
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: make
