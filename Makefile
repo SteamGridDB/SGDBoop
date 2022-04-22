@@ -1,5 +1,5 @@
 make_sgdb:
 	ifeq ($(OS),Windows_NT)
-		gcc sgdb-steamdownloader.c curl-helper.c -lcurl -o sgdb-steamdownloader.exe
+		gcc sgdbop.c curl-helper.c string-helpers.c -lcurl -o SGDBop.exe
 	else
-		gcc sgdb-steamdownloader.c curl-helper.c -lcurl -o sgdb-steamdownloader
+		gcc sgdbop.c curl-helper.c string-helpers.c -lcurl -o SGDBop

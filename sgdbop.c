@@ -49,12 +49,9 @@ char** callAPI(char* grid_type, char* grid_id)
 		valuesArray[1] = strstr(s.ptr, ",");
 		valuesArray[1][0] = '\0';
 		valuesArray[1] += 1;
-		/*valuesArray[2] = strstr(valuesArray[1], ",");
+		valuesArray[2] = strstr(valuesArray[1], ",");
 		valuesArray[2][0] = '\0';
-		valuesArray[2] += 1;*/
-		valuesArray[2] = malloc(5);
-		valuesArray[2][0] = 'v';
-		valuesArray[2][1] = '\0';
+		valuesArray[2] += 1;
 
 		return valuesArray;
 	}
@@ -86,8 +83,11 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation)
 	else if (strcmp(type, "logo") == 0) {
 		strcat(outfilename, "_logo.png");
 	}
-	else if (strcmp(type, "grid") == 0 && strcmp(orientation, "v") == 0) {
+	else if (strcmp(type, "grid") == 0 && strcmp(orientation, "p") == 0) {
 		strcat(outfilename, "p.png");
+	}
+	else if (strcmp(type, "grid") == 0) {
+		strcat(outfilename, ".png");
 	}
 
 	curl = curl_easy_init();
@@ -113,7 +113,7 @@ int createURIprotocol() {
 		GetModuleFileName(NULL, cwd, MAX_PATH);
 
 		char* regeditCommand = malloc(2028);
-		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"cmd /c start /min \\\"\\\" \\\"");
+		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
 		strcat(regeditCommand, cwd);
 		strcat(regeditCommand, "\\\" \\\"%1\\\"\" /f");
 
@@ -138,6 +138,7 @@ int createURIprotocol() {
 // Get Steam's installation directory
 char* getSteamDir() {
 	char* steamBaseDir = malloc(MAX_PATH);
+	steamBaseDir[0] = NULL;
 	char* steamConfigFile = malloc(MAX_PATH);
 	FILE* fp;
 	char* line = NULL;
@@ -169,9 +170,7 @@ char* getSteamDir() {
 		}
 	}
 	else {
-		/* Some notes:
-			* We can use ~/.local/share/Steam for linux steam dir
-		*/
+		strcpy(steamBaseDir, "~/.steam");
 	}
 
 	strcpy(steamConfigFile, steamBaseDir);
@@ -181,7 +180,7 @@ char* getSteamDir() {
 		exit(EXIT_FAILURE);
 
 	while ((read = getline(&line, &len, fp)) != -1) {
-		if (strstr(line, "7656119")) {
+		if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
 			// Found line with id
 			strcpy(steamid, line);
 			steamid = strstr(steamid, "7656119");
@@ -190,8 +189,7 @@ char* getSteamDir() {
 		}
 		else if (strstr(line, "mostrecent") && strstr(line, "\"1\"")) {
 			// Found line mostrecent
-			char* ptr = malloc(256);
-			unsigned long long steamidLongLong = atoll(steamid, ptr, 10);
+			unsigned long long steamidLongLong = atoll(steamid);
 			steamidLongLong -= 76561197960265728;
 			sprintf(steamid, "%u", steamidLongLong);
 
@@ -205,6 +203,10 @@ char* getSteamDir() {
 	fclose(fp);
 	if (line)
 		free(line);
+
+	if (steamBaseDir[0] == NULL) {
+		steamBaseDir = NULL;
+	}
 
 	return steamBaseDir;
 }
@@ -228,11 +230,14 @@ int copyFile(char* infilepath, char* outfileDir) {
 	long fileSize = ftell(infile);
 	fseek(infile, 0L, SEEK_SET);
 	if (infile == NULL) {
-		return 1;
+		return 85;
 	}
 	strcpy(outfilename, outfileDir);
 	strcat(outfilename, infilename);
 	outfile = fopen(outfilename, "wb");
+	if (outfile == NULL) {
+		return 86;
+	}
 
 	size_t n, m;
 	unsigned char buff[8192];
@@ -255,7 +260,7 @@ int main(int argc, char** argv)
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb:%5C%5C"))) {
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
-			return 1;
+			return 80;
 		}
 	}
 	else {
@@ -263,7 +268,7 @@ int main(int argc, char** argv)
 
 		// If the arguments aren't of the SGDB URI, return with an error
 		if (startsWith(argv[1], "sgdb:%5C%5Cbop")) {
-			return 1;
+			return 81;
 		}
 
 		// Get the params from the string
@@ -274,21 +279,27 @@ int main(int argc, char** argv)
 
 		// Get asset URL
 		char** apiValues = callAPI(type, grid_id);
-		char* app_id = apiValues[0];
-		char* assetUrl = apiValues[1];
-		char* orientation = apiValues[2];
-
-		// printf("Orientation: %s\n", orientation);
-
-		// If no valid URL was returned, return
-		if (assetUrl == NULL)
-		{
-			return 1;
+		if (apiValues == NULL) {
+			return 82;
 		}
+		char* app_id = apiValues[0];
+		char* orientation = apiValues[1];
+		char* assetUrl = apiValues[2];
 
 		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation);
+		if (outfilename == NULL) {
+			return 83;
+		}
+		
 		char* steamDir = getSteamDir();
-		copyFile(outfilename, steamDir);
+		if (steamDir == NULL) {
+			return 84;
+		}
+		
+		int copyResult = copyFile(outfilename, steamDir);
+		if (outfilename > 0) {
+			return copyResult;
+		}
 	}
 
 	return 0;

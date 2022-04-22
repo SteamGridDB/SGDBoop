@@ -18,10 +18,10 @@
     <ClCompile Include="curl-helper.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sgdb-steamdownloader.c">
+    <ClCompile Include="string-helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="string-helpers.c">
+    <ClCompile Include="sgdbop.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
