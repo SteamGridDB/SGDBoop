@@ -3,7 +3,7 @@
 
 // Overriding getline_custom
 // https://stackoverflow.com/a/3501681/16642426
-size_t getline(char**, size_t*, FILE*);
+size_t readLine(char**, size_t*, FILE*);
 
 // Get last index of char in string
 // https://stackoverflow.com/a/19342633/16642426

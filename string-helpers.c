@@ -3,7 +3,7 @@
 
 // Overriding getline_custom
 // https://stackoverflow.com/a/3501681/16642426
-size_t getline(char** lineptr, size_t* n, FILE* stream) {
+size_t readLine(char** lineptr, size_t* n, FILE* stream) {
     char* bufptr = NULL;
     char* p = bufptr;
     size_t size;

@@ -1,5 +1,9 @@
 #ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
 #define OS_Windows 0
+#define MAX_PATH 600 
+#define FALSE 0
+int GetConsoleWindow();
+void MoveWindow(int, int, int, int, int, int);
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #define OS_Windows 1
 #include <windows.h>
@@ -180,7 +184,7 @@ char* getSteamDir() {
 	if (fp == NULL)
 		exit(EXIT_FAILURE);
 
-	while ((read = getline(&line, &len, fp)) != -1) {
+	while ((read = readLine(&line, &len, fp)) != -1) {
 		if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
 			// Found line with id
 			strcpy(steamid, line);
@@ -267,8 +271,7 @@ int main(int argc, char** argv)
 	else {
 
 		if (OS_Windows) {
-			HWND hwndConsole = GetConsoleWindow();
-			MoveWindow(hwndConsole, -3000, -3000, 0, 0, FALSE);
+			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
 		}
 
 		// If arguments were passed, run program normally
