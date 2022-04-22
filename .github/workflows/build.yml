@@ -42,6 +42,8 @@ jobs:
       run: msbuild /m /p:VcpkgEnableManifest=true
   linux:
     runs-on: ubuntu-latest
+    env:
+      OS: Linux
 
     steps:
     - uses: actions/checkout@v3
