@@ -11,7 +11,7 @@ chmod +x /usr/bin/SGDBop
 desktop-file-install com.steamgriddb.SGDBop.desktop --delete-original --rebuild-mime-info-cache
 
 su - $SUDO_USER
-xdg-mime default sgdbop.desktop x-scheme-handler/sgdb
+xdg-mime default com.steamgriddb.SGDBop.desktop x-scheme-handler/sgdb
 
 echo "Installation complete! You may delete this install script."
 exit 0
