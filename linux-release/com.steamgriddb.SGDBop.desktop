@@ -4,4 +4,7 @@ Comment=Apply Steam assets from SteamGridDB.
 Exec=/usr/bin/SGDBop %U
 Terminal=false
 Type=Application
+NoDisplay=true
+Icon=steam
 MimeType=x-scheme-handler/sgdb
+Categories=Utility
