@@ -94,7 +94,6 @@ jobs:
         allowUpdates: true
         omitName: true
         omitBody: true
-        prerelease: true
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
