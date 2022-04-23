@@ -8,7 +8,7 @@ fi
 
 mv SGDBop /usr/bin/SGDBop
 chmod +x /usr/bin/SGDBop
-desktop-file-install sgdbop.desktop --delete-original --rebuild-mime-info-cache
+desktop-file-install com.steamgriddb.SGDBop.desktop --delete-original --rebuild-mime-info-cache
 
 su - $SUDO_USER
 xdg-mime default sgdbop.desktop x-scheme-handler/sgdb
