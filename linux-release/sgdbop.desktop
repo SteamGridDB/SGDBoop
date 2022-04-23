@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=SGDBop
+Comment=Apply Steam assets from SteamGridDB.
+Exec=/usr/bin/SGDBop %U
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/sgdb

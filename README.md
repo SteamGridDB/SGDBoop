@@ -7,7 +7,14 @@ Set up for Windows:
 - Run it once with Administrator privileges (can be done via Right Click -> Run as Administrator)
 
 Set up for Linux:
-- Patent Pending
+- Download the latest sgdbop-linux64.tar.gz
+```sh
+mkdir sgdbop-linux64
+tar -zxf sgdbop-linux64.tar.gz -C sgdbop-linux64
+cd sgdbop-linux64
+chmod +x install.sh
+sudo ./install.sh
+```
 
 **That's it!** You can now go to SteamGridDB.com, click the "**BOP**" button on any artwork you want and SGDBop will automatically apply it to your Steam client!
 

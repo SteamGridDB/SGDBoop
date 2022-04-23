@@ -1,4 +1,4 @@
-name: Build Release
+name: Build Binaries
 
 on:
   push:
@@ -69,11 +69,11 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: linux-build
-        path: SGDBop
+        path: linux-release/*
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
-    name: "Upload Artifacts"
+    name: "Upload Artifacts to Release"
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -86,6 +86,9 @@ jobs:
     - name: Archive Windows Release Build
       run: 7z a sgdbop-win64.zip ./artifacts/win64-release/*
 
+    - name: Archive Linux Release Build
+      run: cd artifacts/linux-build/ && tar -czvf ../../sgdbop-linux64.tar.gz *
+
     - uses: ncipollo/release-action@v1
       with:
         allowUpdates: true
@@ -95,4 +98,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "artifacts/linux-build/SGDBop,sgdbop-win64.zip"
+        artifacts: "sgdbop-linux64.tar.gz,sgdbop-win64.zip"
