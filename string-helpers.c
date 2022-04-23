@@ -55,20 +55,6 @@ size_t readLine(char** lineptr, size_t* n, FILE* stream) {
     return p - bufptr - 1;
 }
 
-// Get last index of char in string
-// https://stackoverflow.com/a/19342633/16642426
-int lastIndexOf(const char* s, char target)
-{
-    int ret = -1;
-    int curIdx = 0;
-    while (s[curIdx] != '\0')
-    {
-        if (s[curIdx] == target) ret = curIdx;
-        curIdx++;
-    }
-    return ret;
-}
-
 // Check if a string starts with a given substring
 // https://stackoverflow.com/a/15515276/16642426
 int startsWith(const char* a, const char* b)

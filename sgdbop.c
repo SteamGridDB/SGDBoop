@@ -58,30 +58,23 @@ char** callAPI(char* grid_type, char* grid_id)
 		valuesArray[2][0] = '\0';
 		valuesArray[2] += 1;
 
+		free(url);
 		return valuesArray;
 	}
+	free(url);
+	free(valuesArray);
 	return NULL;
 }
 
 // Download an asset file
-char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation)
+char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir)
 {
-	char* tempPath;
-	if (OS_Windows) {
-		tempPath = getenv("TEMP");
-	}
-	else {
-		tempPath = malloc(512);
-		strcpy(tempPath, "/tmp");
-	}
-
 	CURL* curl;
 	FILE* fp;
 	CURLcode res;
 
 	char* outfilename = malloc(1024);
-	strcpy(outfilename, tempPath);
-	strcat(outfilename, "/");
+	strcpy(outfilename, destinationDir);
 	strcat(outfilename, app_id);
 	if (strcmp(type, "hero") == 0) {
 		// Hero
@@ -111,8 +104,12 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		fclose(fp);
+		if (res != 0) {
+			curl_easy_cleanup(curl);
+			fclose(fp);
+			remove(outfilename);
+			return NULL;
+		}
 
 		return outfilename;
 	}
@@ -136,6 +133,7 @@ int createURIprotocol() {
 			system("cls");
 			printf("Please run this program as Administrator!\n");
 			system("pause");
+			free(regeditCommand);
 			return 1;
 		}
 
@@ -145,6 +143,7 @@ int createURIprotocol() {
 		system("cls");
 		printf("Program registered successfully!\n");
 		system("pause");
+		free(regeditCommand);
 		return 0;
 	}
 	else {
@@ -178,12 +177,12 @@ int deleteURIprotocol() {
 char* getSteamDestinationDir(char* type) {
 	char* steamBaseDir = malloc(MAX_PATH);
 	steamBaseDir[0] = NULL;
-	char* steamConfigFile = malloc(MAX_PATH);
+	char* steamConfigFile[MAX_PATH];
 	FILE* fp;
 	char* line = NULL;
 	size_t len = 0;
 	size_t read;
-	char* steamid = malloc(64);
+	char* steamid = malloc(512);
 
 	if (OS_Windows) {
 		FILE* terminal = _popen("reg query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
@@ -228,8 +227,7 @@ char* getSteamDestinationDir(char* type) {
 		while ((read = readLine(&line, &len, fp)) != -1) {
 			if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
 				// Found line with id
-				strcpy(steamid, line);
-				steamid = strstr(steamid, "7656119");
+				strcpy(steamid, strstr(line, "7656119"));
 				char* stringEnd = strstr(steamid, "\"");
 				stringEnd[0] = '\0';
 			}
@@ -247,6 +245,8 @@ char* getSteamDestinationDir(char* type) {
 		}
 
 		fclose(fp);
+		if (steamid)
+			free(steamid);
 		if (line)
 			free(line);
 	}
@@ -256,49 +256,6 @@ char* getSteamDestinationDir(char* type) {
 	}
 
 	return steamBaseDir;
-}
-
-// Copy a file to another directory
-// https://stackoverflow.com/a/28797171/16642426
-int copyFile(char* infilepath, char* outfileDir) {
-
-	// Try creating folder
-	if (mkdir(outfileDir, 0700) == -1) {
-		// Ignore error if folder exists
-	}
-	FILE* infile;
-	FILE* outfile;
-	char* infilename = infilepath + lastIndexOf(infilepath, '/') + 1;
-
-	char outfilename[MAX_PATH];
-
-	infile = fopen(infilepath, "rb");
-	fseek(infile, 0L, SEEK_END);
-	long fileSize = ftell(infile);
-	fseek(infile, 0L, SEEK_SET);
-	if (infile == NULL) {
-		return 85;
-	}
-	strcpy(outfilename, outfileDir);
-	strcat(outfilename, infilename);
-	outfile = fopen(outfilename, "wb");
-	if (outfile == NULL) {
-		return 86;
-	}
-
-	size_t n, m;
-	unsigned char buff[8192];
-	do {
-		n = fread(buff, 1, sizeof buff, infile);
-		if (n) m = fwrite(buff, 1, n, outfile);
-		else   m = 0;
-	} while ((n > 0) && (n == m));
-	if (m) perror("copy");
-
-	fclose(infile);
-	fclose(outfile);
-
-	return 0;
 }
 
 int main(int argc, char** argv)
@@ -319,7 +276,7 @@ int main(int argc, char** argv)
 		// If argument is unregister, unregister and exit
 		if (strcmp(argv[1], "unregister") == 0) {
 			if (deleteURIprotocol() == 1) {
-				return 80;
+				return 85;
 			}
 			return 0;
 		}
@@ -346,22 +303,16 @@ int main(int argc, char** argv)
 		char* orientation = apiValues[1];
 		char* assetUrl = apiValues[2];
 
-		// Download asset file
-		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation);
-		if (outfilename == NULL) {
-			return 83;
-		}
-
 		// Get Steam base dir
 		char* steamDestDir = getSteamDestinationDir(type);
 		if (steamDestDir == NULL) {
-			return 84;
+			return 83;
 		}
 
-		// Copy the downloaded file to Steam
-		int copyResult = copyFile(outfilename, steamDestDir);
-		if (copyResult > 0) {
-			return copyResult;
+		// Download asset file
+		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir);
+		if (outfilename == NULL) {
+			return 84;
 		}
 	}
 
