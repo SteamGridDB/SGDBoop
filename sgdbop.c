@@ -143,7 +143,29 @@ int createURIprotocol() {
 		system(regeditCommand);
 
 		system("cls");
-		printf("Program registered correctly!\n");
+		printf("Program registered successfully!\n");
+		system("pause");
+		return 0;
+	}
+	else {
+		return 0;
+	}
+}
+
+// Delete the SGDB URI protocol
+int deleteURIprotocol() {
+	if (OS_Windows) {
+
+		int ret_val = system("REG DELETE HKCR\\sgdb /f");
+		if (ret_val != 0) {
+			system("cls");
+			printf("Please run this program as Administrator!\n");
+			system("pause");
+			return 1;
+		}
+
+		system("cls");
+		printf("Program unregistered successfully!\n");
 		system("pause");
 		return 0;
 	}
@@ -282,7 +304,7 @@ int copyFile(char* infilepath, char* outfileDir) {
 int main(int argc, char** argv)
 {
 	// If no arguments were given, register the program
-	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb:%5C%5C"))) {
+	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
 			return 80;
@@ -294,10 +316,18 @@ int main(int argc, char** argv)
 			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
 		}
 
-		// If arguments were passed, run program normally
+		// If argument is unregister, unregister and exit
+		if (strcmp(argv[1], "unregister") == 0) {
+			if (deleteURIprotocol() == 1) {
+				return 80;
+			}
+			return 0;
+		}
+
+		// If sgdb:// arguments were passed, run program normally
 
 		// If the arguments aren't of the SGDB URI, return with an error
-		if (startsWith(argv[1], "sgdb:%5C%5Cbop")) {
+		if (!startsWith(argv[1], "sgdb://bop")) {
 			return 81;
 		}
 
