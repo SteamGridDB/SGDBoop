@@ -11,4 +11,4 @@ build:
 
 .PHONY: install
 install: build
-	install -d linux-release/SGDBop $(DESTDIR)$(PREFIX)/bin
+	install -c linux-release/SGDBop $(DESTDIR)$(PREFIX)/bin
