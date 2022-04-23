@@ -121,7 +121,7 @@ int createURIprotocol() {
 		char* regeditCommand = malloc(2028);
 		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
 		strcat(regeditCommand, cwd);
-		strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:sgdbop\" /f");
+		strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
 
 		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
