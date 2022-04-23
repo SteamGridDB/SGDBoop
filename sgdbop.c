@@ -84,16 +84,24 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation)
 	strcat(outfilename, "/");
 	strcat(outfilename, app_id);
 	if (strcmp(type, "hero") == 0) {
+		// Hero
 		strcat(outfilename, "_hero.png");
 	}
 	else if (strcmp(type, "logo") == 0) {
+		// Logo
 		strcat(outfilename, "_logo.png");
 	}
 	else if (strcmp(type, "grid") == 0 && strcmp(orientation, "p") == 0) {
+		// Vertical grid
 		strcat(outfilename, "p.png");
 	}
 	else if (strcmp(type, "grid") == 0) {
+		// Horizontal grid
 		strcat(outfilename, ".png");
+	}
+	else if (strcmp(type, "icon") == 0) {
+		// Icon
+		strcat(outfilename, "_icon.jpg");
 	}
 
 	curl = curl_easy_init();
@@ -140,17 +148,12 @@ int createURIprotocol() {
 		return 0;
 	}
 	else {
-		int err = system("xdg-settings --help >/dev/null 2>&1");
-		if (err != 0) {
-			printf("Please install xdg-utils (specifically xdg-settings) to run this program");
-			system("pause");
-			return 1;
-		}
+		return 0;
 	}
 }
 
-// Get Steam's installation directory
-char* getSteamDir() {
+// Get Steam's destination directory based on artwork type
+char* getSteamDestinationDir(char* type) {
 	char* steamBaseDir = malloc(MAX_PATH);
 	steamBaseDir[0] = NULL;
 	char* steamConfigFile = malloc(MAX_PATH);
@@ -188,36 +191,43 @@ char* getSteamDir() {
 		strcat(steamBaseDir, "/.steam/steam");
 	}
 
-	strcpy(steamConfigFile, steamBaseDir);
-	strcat(steamConfigFile, "/config/loginusers.vdf");
-	fp = fopen(steamConfigFile, "r");
-	if (fp == NULL)
-		exit(EXIT_FAILURE);
-
-	while ((read = readLine(&line, &len, fp)) != -1) {
-		if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
-			// Found line with id
-			strcpy(steamid, line);
-			steamid = strstr(steamid, "7656119");
-			char* stringEnd = strstr(steamid, "\"");
-			stringEnd[0] = '\0';
-		}
-		else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
-			// Found line mostrecent
-			unsigned long long steamidLongLong = atoll(steamid);
-			steamidLongLong -= 76561197960265728;
-			sprintf(steamid, "%u", steamidLongLong);
-
-			strcat(steamBaseDir, "/userdata/");
-			strcat(steamBaseDir, steamid);
-			strcat(steamBaseDir, "/config/grid/");
-			break;
-		}
+	if (strcmp(type, "icon") == 0) {
+		// If it's an icon
+		strcat(steamBaseDir, "/appcache/librarycache/");
 	}
+	else {
+		// If it's not an icon, read the loginusers.vdf to find the most recent user
+		strcpy(steamConfigFile, steamBaseDir);
+		strcat(steamConfigFile, "/config/loginusers.vdf");
+		fp = fopen(steamConfigFile, "r");
+		if (fp == NULL)
+			exit(EXIT_FAILURE);
 
-	fclose(fp);
-	if (line)
-		free(line);
+		while ((read = readLine(&line, &len, fp)) != -1) {
+			if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
+				// Found line with id
+				strcpy(steamid, line);
+				steamid = strstr(steamid, "7656119");
+				char* stringEnd = strstr(steamid, "\"");
+				stringEnd[0] = '\0';
+			}
+			else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
+				// Found line mostrecent
+				unsigned long long steamidLongLong = atoll(steamid);
+				steamidLongLong -= 76561197960265728;
+				sprintf(steamid, "%u", steamidLongLong);
+
+				strcat(steamBaseDir, "/userdata/");
+				strcat(steamBaseDir, steamid);
+				strcat(steamBaseDir, "/config/grid/");
+				break;
+			}
+		}
+
+		fclose(fp);
+		if (line)
+			free(line);
+	}
 
 	if (steamBaseDir[0] == NULL) {
 		steamBaseDir = NULL;
@@ -313,14 +323,14 @@ int main(int argc, char** argv)
 		}
 
 		// Get Steam base dir
-		char* steamDir = getSteamDir();
-		if (steamDir == NULL) {
+		char* steamDestDir = getSteamDestinationDir(type);
+		if (steamDestDir == NULL) {
 			return 84;
 		}
 
 		// Copy the downloaded file to Steam
-		int copyResult = copyFile(outfilename, steamDir);
-		if (outfilename > 0) {
+		int copyResult = copyFile(outfilename, steamDestDir);
+		if (copyResult > 0) {
 			return copyResult;
 		}
 	}
