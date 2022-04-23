@@ -1,12 +1,16 @@
 # SteamGridDB Presents SGDBop
-Have fun with SGDBop, the new and improved automatic tool for applying your favorite artwork from SteamGridDB.com directly to your Steam library!
+Have fun with SGDBop, the new and improved automatic tool for applying your favorite artwork from [SteamGridDB.com](https://www.steamgriddb.com/) directly to your Steam library!
 
 # Instructions
-Set up for Windows:
+## Set up for Windows
 - Put the program in any directory you prefer
 - Run it once with Administrator privileges (can be done via Right Click -> Run as Administrator)
 
-Set up for Linux:
+In case you want to completely remove the app from your system::
+- Run the program with the 'unregister' argument (For example, in and Admin CMD run `SGDBop.exe unregister`)
+- Delete all the files that came with the program
+
+## Set up for Linux
 - Download the latest sgdbop-linux64.tar.gz
 ```sh
 mkdir sgdbop-linux64
