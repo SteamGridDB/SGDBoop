@@ -1,12 +1,14 @@
-ifndef (OS)
-OS_Type := NotWindows
-else
-OS_Type := $(OS)
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
 endif
 
-make_sgdb:
-ifeq "$(OS_Type)" "Windows_NT"
-	gcc sgdbop.c curl-helper.c string-helpers.c -lcurl -o SGDBop.exe
-else
+.PHONY: all
+all: build
+
+.PHONY: build
+build:
 	gcc sgdbop.c curl-helper.c string-helpers.c -lcurl -o linux-release/SGDBop
-endif
+
+.PHONY: install
+install: build
+	install -d linux-release/SGDBop $(DESTDIR)$(PREFIX)/bin

@@ -6,8 +6,8 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-mv SGDBop /usr/bin/SGDBop
-chmod +x /usr/bin/SGDBop
+mv SGDBop /usr/local/bin/SGDBop
+chmod +x /usr/local/bin/SGDBop
 desktop-file-install com.steamgriddb.SGDBop.desktop --delete-original --rebuild-mime-info-cache
 
 su - $SUDO_USER
