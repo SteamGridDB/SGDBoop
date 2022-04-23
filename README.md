@@ -15,9 +15,8 @@ In case you want to completely remove the app from your system::
 ```sh
 mkdir sgdbop-linux64
 tar -zxf sgdbop-linux64.tar.gz -C sgdbop-linux64
-cd sgdbop-linux64
-chmod +x install.sh
-sudo ./install.sh
+chmod +x sgdbop-linux64/install.sh
+sudo ./sgdbop-linux64/install.sh
 ```
 
 **That's it!** You can now go to SteamGridDB.com, click the "**BOP**" button on any artwork you want and SGDBop will automatically apply it to your Steam client!
