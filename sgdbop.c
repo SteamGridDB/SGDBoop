@@ -104,9 +104,9 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		fclose(fp);
 		if (res != 0) {
-			curl_easy_cleanup(curl);
-			fclose(fp);
 			remove(outfilename);
 			return NULL;
 		}
