@@ -1,0 +1,14 @@
+app-id: com.steamgriddb.SGDBop
+runtime: org.freedesktop.Platform
+runtime-version: '21.08'
+sdk: org.freedesktop.Sdk
+command: SGDBop
+finish-args:
+  - --share=network
+  - --filesystem=home
+modules:
+  - name: sgdbop
+    no-autogen: true
+    sources:
+      - type: dir
+        path: ../

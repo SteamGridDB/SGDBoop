@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=SGDBop
 Comment=Apply Steam assets from SteamGridDB
-Exec=/usr/local/bin/SGDBop %U
+Exec=SGDBop %U
 Terminal=false
 Type=Application
 NoDisplay=true
