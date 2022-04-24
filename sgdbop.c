@@ -147,6 +147,12 @@ int createURIprotocol() {
 		return 0;
 	}
 	else {
+		int ret_val = system("xdg-mime default com.steamgriddb.SGDBop.desktop x-scheme-handler/sgdb");
+		if (ret_val != 0) {
+			system("clear");
+			printf("Something went wrong. Please make sure xdg-utils is installed.\n");
+			return 1;
+		}
 		return 0;
 	}
 }
