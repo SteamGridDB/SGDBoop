@@ -105,7 +105,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="curl-helper.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="string-helpers.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SGDBop.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
