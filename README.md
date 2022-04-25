@@ -1,5 +1,5 @@
-# SteamGridDB Presents SGDBop
-Have fun with SGDBop, the new and improved automatic tool for applying your favorite artwork from [SteamGridDB.com](https://www.steamgriddb.com/) directly to your Steam library!
+# SGDBop
+SGDBop is a tool to automatically apply assets from [SteamGridDB](https://www.steamgriddb.com/) directly to your Steam library that removes the need to download and set them manually.
 
 # Instructions
 ## Set up for Windows
