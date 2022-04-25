@@ -1,26 +1,36 @@
-#ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
-#define OS_Windows 0
-#define MAX_PATH 600 
-#define FALSE 0
-int GetConsoleWindow();
-void MoveWindow(int, int, int, int, int, int);
-#elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
-#define OS_Windows 1
-#define F_OK 0
-#include <windows.h>
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
+#include <sys/stat.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
+
+#ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
+#define OS_Windows 0
+#define MAX_PATH 600 
+#define FALSE 0
+#define TRUE 1
+int GetConsoleWindow();
+void MoveWindow(int, int, int, int, int, int);
+void GetModuleFileName(char*, char*, int);
+FILE* _popen(char*, char*);
+void _pclose(FILE*);
+#include <unistd.h>
+#elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
+#define OS_Windows 1
+#include <windows.h>
+#include <libloaderapi.h>
+#endif
+
+#define API_VERSION "1"
 
 // Call the BOP API
 char** callAPI(char* grid_type, char* grid_id)
 {
-	char authHeader[] = "Authorization: Bearer <bopToken>";
+	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
+	char apiVersionHeader[20] = "X-BOP-API-VER: ";
+	strcat(apiVersionHeader, API_VERSION);
 	char* url = malloc(512);
 	char** valuesArray = malloc(1024);
 
@@ -41,7 +51,9 @@ char** callAPI(char* grid_type, char* grid_id)
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
 		headers = curl_slist_append(headers, authHeader);
+		headers = curl_slist_append(headers, apiVersionHeader);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		res = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
@@ -71,8 +83,8 @@ char** callAPI(char* grid_type, char* grid_id)
 char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir)
 {
 	// Try creating folder
-	if (access(destinationDir, F_OK) != 0 && mkdir(destinationDir, 0700) == -1) {
-		// Ignore error if folder exists
+	if (access(destinationDir, 0) != 0) {
+		mkdir(destinationDir, 0700);
 	}
 
 	CURL* curl;
@@ -104,10 +116,10 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	}
 
 	curl = curl_easy_init();
-	if (curl) {
+	if (curl && outfilename != 0) {
 		fp = fopen(outfilename, "wb");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 		res = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
@@ -143,8 +155,14 @@ int createURIprotocol() {
 			return 1;
 		}
 
-		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 		system(regeditCommand);
+
+		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
+		strcat(regeditCommand, cwd);
+		strcat(regeditCommand, "\" /f");
+		system(regeditCommand);
+
+		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
 		system("cls");
 		printf("Program registered successfully!\n");
@@ -188,18 +206,17 @@ int deleteURIprotocol() {
 // Get Steam's destination directory based on artwork type
 char* getSteamDestinationDir(char* type) {
 	char* steamBaseDir = malloc(MAX_PATH);
-	steamBaseDir[0] = NULL;
-	char* steamConfigFile[MAX_PATH];
+	char steamConfigFile[MAX_PATH];
 	FILE* fp;
 	char* line = NULL;
 	size_t len = 0;
 	size_t read;
 	char* steamid = malloc(512);
+	int foundValue = 0;
 
 	if (OS_Windows) {
 		FILE* terminal = _popen("reg query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
 		char buf[256];
-		int foundValue = 0;
 		while (fgets(buf, sizeof(buf), terminal) != 0) {
 			if (strstr(buf, "SteamPath")) {
 				char* extractedValue = strstr(buf, "REG_SZ") + 10;
@@ -220,6 +237,7 @@ char* getSteamDestinationDir(char* type) {
 		}
 	}
 	else {
+		foundValue = 1;
 		strcpy(steamBaseDir, getenv("HOME"));
 		strcat(steamBaseDir, "/.steam/steam");
 	}
@@ -233,8 +251,10 @@ char* getSteamDestinationDir(char* type) {
 		strcpy(steamConfigFile, steamBaseDir);
 		strcat(steamConfigFile, "/config/loginusers.vdf");
 		fp = fopen(steamConfigFile, "r");
-		if (fp == NULL)
+		if (fp == NULL) {
+			free(steamBaseDir);
 			exit(EXIT_FAILURE);
+		}
 
 		while ((read = readLine(&line, &len, fp)) != -1) {
 			if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
@@ -247,7 +267,7 @@ char* getSteamDestinationDir(char* type) {
 				// Found line mostrecent
 				unsigned long long steamidLongLong = atoll(steamid);
 				steamidLongLong -= 76561197960265728;
-				sprintf(steamid, "%u", steamidLongLong);
+				sprintf(steamid, "%llu", steamidLongLong);
 
 				strcat(steamBaseDir, "/userdata/");
 				strcat(steamBaseDir, steamid);
@@ -263,7 +283,7 @@ char* getSteamDestinationDir(char* type) {
 			free(line);
 	}
 
-	if (steamBaseDir[0] == NULL) {
+	if (!foundValue) {
 		steamBaseDir = NULL;
 	}
 

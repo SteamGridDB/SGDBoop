@@ -6,4 +6,3 @@ struct string {
 };
 void init_string(struct string*);
 size_t writefunc(void*, size_t, size_t, struct string*);
-size_t write_data(void*, size_t, size_t, FILE*);
