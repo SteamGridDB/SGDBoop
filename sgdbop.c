@@ -6,6 +6,7 @@ int GetConsoleWindow();
 void MoveWindow(int, int, int, int, int, int);
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #define OS_Windows 1
+#define F_OK 0
 #include <windows.h>
 #endif
 
@@ -69,6 +70,11 @@ char** callAPI(char* grid_type, char* grid_id)
 // Download an asset file
 char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir)
 {
+	// Try creating folder
+	if (access(destinationDir, F_OK) != 0 && mkdir(destinationDir, 0700) == -1) {
+		// Ignore error if folder exists
+	}
+
 	CURL* curl;
 	FILE* fp;
 	CURLcode res;
