@@ -5,6 +5,6 @@ Exec=SGDBop %U
 Terminal=false
 Type=Application
 NoDisplay=true
-Icon=steam
+Icon=com.steamgriddb.SGDBop
 MimeType=x-scheme-handler/sgdb
 Categories=Utility
