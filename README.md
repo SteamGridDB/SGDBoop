@@ -11,14 +11,14 @@ In case you want to completely remove the app from your system:
 - Delete all the files that came with the program
 
 ## Set up for Linux
-### From source
+### Build from source
 - Install the following prerequisites via your distros package manager: `make` `gcc` `libcurl4-openssl-dev`
 - ```sh
   git clone https://github.com/SteamGridDB/SGDBop.git
   sudo make install -C SGDBop
   ```
 
-### Via install script
+### Prebuilt binary via install script
 - Download the latest [sgdbop-linux64.tar.gz](https://github.com/SteamGridDB/SGDBop/releases/latest)
 - ```sh
   mkdir sgdbop-linux64
@@ -27,7 +27,7 @@ In case you want to completely remove the app from your system:
   sudo ./sgdbop-linux64/install.sh
   ```
 
-**That's it!** You can now go to SteamGridDB.com, click the "**BOP**" button on any artwork you want and SGDBop will automatically apply it to your Steam client!
+**That's it!** You can now go to https://www.steamgriddb.com/bop to enable the "**BOP**" button!
 
 # Credits
 <a href="https://github.com/SteamGridDB/SGDBop/graphs/contributors">
