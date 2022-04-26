@@ -43,7 +43,7 @@ jobs:
       with:
         name: win64-release
         path: |
-          x64/Release/SGDBop.exe
+          x64/Release/SGDBoop.exe
           x64/Release/libcurl.dll
           x64/Release/zlib1.dll
 
@@ -84,13 +84,13 @@ jobs:
         path: artifacts
 
     - name: Archive Windows Release Build
-      run: 7z a sgdbop-win64.zip ./artifacts/win64-release/*
+      run: 7z a sgdboop-win64.zip ./artifacts/win64-release/*
 
     - name: Archive Linux Release Build
       run: |
-        chmod +x artifacts/linux-build/install.sh artifacts/linux-build/SGDBop
+        chmod +x artifacts/linux-build/install.sh artifacts/linux-build/SGDBoop
         cd artifacts/linux-build/
-        tar -czvf ../../sgdbop-linux64.tar.gz *
+        tar -czvf ../../sgdboop-linux64.tar.gz *
 
     - uses: ncipollo/release-action@v1
       with:
@@ -100,4 +100,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdbop-linux64.tar.gz,sgdbop-win64.zip"
+        artifacts: "sgdboop-linux64.tar.gz,sgdboop-win64.zip"

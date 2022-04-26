@@ -453,4 +453,4 @@ dkms.conf
 # VCPKG
 vcpkg_installed/
 
-linux-release/SGDBop
+linux-release/SGDBoop

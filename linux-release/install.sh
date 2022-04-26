@@ -6,12 +6,12 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-mv SGDBop /usr/local/bin/SGDBop
-chmod +x /usr/local/bin/SGDBop
-desktop-file-install com.steamgriddb.SGDBop.desktop --delete-original --rebuild-mime-info-cache
+mv SGDBoop /usr/local/bin/SGDBoop
+chmod +x /usr/local/bin/SGDBoop
+desktop-file-install com.steamgriddb.SGDBoop.desktop --delete-original --rebuild-mime-info-cache
 
 su - $SUDO_USER
-xdg-mime default com.steamgriddb.SGDBop.desktop x-scheme-handler/sgdb
+xdg-mime default com.steamgriddb.SGDBoop.desktop x-scheme-handler/sgdb
 
 echo "Installation complete! You may delete this install script."
 exit 0

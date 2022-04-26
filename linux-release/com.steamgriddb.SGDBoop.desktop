@@ -1,10 +1,10 @@
 [Desktop Entry]
-Name=SGDBop
+Name=SGDBoop
 Comment=Apply Steam assets from SteamGridDB
-Exec=SGDBop %U
+Exec=SGDBoop %U
 Terminal=false
 Type=Application
 NoDisplay=true
-Icon=com.steamgriddb.SGDBop
+Icon=com.steamgriddb.SGDBoop
 MimeType=x-scheme-handler/sgdb
 Categories=Utility
