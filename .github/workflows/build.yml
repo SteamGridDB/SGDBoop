@@ -87,7 +87,10 @@ jobs:
       run: 7z a sgdbop-win64.zip ./artifacts/win64-release/*
 
     - name: Archive Linux Release Build
-      run: cd artifacts/linux-build/ && tar -czvf ../../sgdbop-linux64.tar.gz *
+      run: |
+        chmod +x artifacts/linux-build/install.sh artifacts/linux-build/SGDBop
+        cd artifacts/linux-build/
+        tar -czvf ../../sgdbop-linux64.tar.gz *
 
     - uses: ncipollo/release-action@v1
       with:
