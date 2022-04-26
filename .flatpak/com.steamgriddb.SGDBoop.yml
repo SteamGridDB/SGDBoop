@@ -1,15 +1,15 @@
-app-id: com.steamgriddb.SGDBop
+app-id: com.steamgriddb.SGDBoop
 runtime: org.freedesktop.Platform
 runtime-version: '21.08'
 sdk: org.freedesktop.Sdk
-command: SGDBop
+command: SGDBoop
 finish-args:
   - --share=network
   - --filesystem=~/.steam/steam/config/loginusers.vdf:ro # Used for reading SteamID
   - --filesystem=~/.steam/steam/userdata:rw # For saving custom images except icons
   - --filesystem=~/.steam/steam/appcache/librarycache:rw # For saving icons
 modules:
-  - name: sgdbop
+  - name: sgdboop
     no-autogen: true
     sources:
       - type: dir
