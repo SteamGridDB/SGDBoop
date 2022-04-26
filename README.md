@@ -1,5 +1,5 @@
 # <img height="20" src="./res/com.steamgriddb.SGDBop.svg"> SGDBop 
-SGDBop is a tool to automatically apply assets from [SteamGridDB](https://www.steamgriddb.com/) directly to your Steam library, removing the need to download and set them manually.
+SGDBop is a tool that automatically applies assets from [SteamGridDB](https://www.steamgriddb.com/) directly to your Steam library, removing the need to download and set them manually.
 
 # Instructions
 ## Set up for Windows
@@ -7,7 +7,7 @@ SGDBop is a tool to automatically apply assets from [SteamGridDB](https://www.st
 - Run it once with Administrator privileges (can be done via Right Click -> Run as Administrator)
 
 In case you want to completely remove the app from your system:
-- Run the program with the 'unregister' argument (For example, in and Admin CMD run `SGDBop.exe unregister`)
+- Run the program with the 'unregister' argument (For example, in an Admin CMD run `SGDBop.exe unregister`)
 - Delete all the files that came with the program
 
 ## Set up for Linux
