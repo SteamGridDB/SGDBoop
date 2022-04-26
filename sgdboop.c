@@ -25,16 +25,16 @@ void _pclose(FILE*);
 
 #define API_VERSION "1"
 
-// Call the BOP API
+// Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id)
 {
 	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
-	char apiVersionHeader[20] = "X-BOP-API-VER: ";
+	char apiVersionHeader[20] = "X-BOOP-API-VER: ";
 	strcat(apiVersionHeader, API_VERSION);
 	char* url = malloc(512);
 	char** valuesArray = malloc(1024);
 
-	strcpy(url, "https://www.steamgriddb.com/api/sgdbop/");
+	strcpy(url, "https://www.steamgriddb.com/api/sgdboop/");
 	strcat(url, grid_type);
 	strcat(url, "/");
 	strcat(url, grid_id);
@@ -171,7 +171,7 @@ int createURIprotocol() {
 		return 0;
 	}
 	else {
-		int ret_val = system("xdg-mime default com.steamgriddb.SGDBop.desktop x-scheme-handler/sgdb");
+		int ret_val = system("xdg-mime default com.steamgriddb.SGDBoop.desktop x-scheme-handler/sgdb");
 		if (ret_val != 0) {
 			system("clear");
 			printf("Something went wrong. Please make sure xdg-utils is installed.\n");
@@ -316,12 +316,12 @@ int main(int argc, char** argv)
 		// If sgdb:// arguments were passed, run program normally
 
 		// If the arguments aren't of the SGDB URI, return with an error
-		if (!startsWith(argv[1], "sgdb://bop")) {
+		if (!startsWith(argv[1], "sgdb://boop")) {
 			return 81;
 		}
 
 		// Get the params from the string
-		char* type = strstr(argv[1], "sgdb://bop/") + strlen("sgdb://bop/");
+		char* type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
 		char* grid_id = strstr(type, "/");
 		grid_id[0] = '\0';         // End app_id string
 		grid_id += 1;              // Move 1 place

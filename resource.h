@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by SGDBop.rc
+// Used by SGDBoop.rc
 //
 #define IDI_ICON1                       101
 
