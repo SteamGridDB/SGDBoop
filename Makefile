@@ -13,6 +13,7 @@ ifdef FLATPAK_ID
 .PHONY: install
 install: build
 	install -Dm644 linux-release/com.steamgriddb.SGDBoop.desktop -t /app/share/applications
+	install -Dm644 com.steamgriddb.SGDBoop.appdata.xml -t /app/share/metainfo
 	install -Dm755 linux-release/SGDBoop -t /app/bin
 	install -Dm644 res/com.steamgriddb.SGDBoop.svg -t export/share/icons/hicolor/scalable/apps
 	mkdir generated_icons
