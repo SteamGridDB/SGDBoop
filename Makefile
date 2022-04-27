@@ -15,12 +15,7 @@ install: build
 	install -Dm644 linux-release/com.steamgriddb.SGDBoop.desktop -t /app/share/applications
 	install -Dm644 com.steamgriddb.SGDBoop.appdata.xml -t /app/share/metainfo
 	install -Dm755 linux-release/SGDBoop -t /app/bin
-	install -Dm644 res/com.steamgriddb.SGDBoop.svg -t export/share/icons/hicolor/scalable/apps
-	mkdir generated_icons
-	for size in 16 24 32 48 64 128 256 512 ; do \
-		rsvg-convert -w $$size -h $$size -f png -o generated_icons/$$size.png res/com.steamgriddb.SGDBoop.svg ; \
-		install -Dm644 generated_icons/$$size.png /app/share/icons/hicolor/$${size}x$${size}/apps/com.steamgriddb.SGDBoop.png ; \
-	done
+	install -Dm644 res/com.steamgriddb.SGDBoop.svg -t /app/share/icons/hicolor/scalable/apps
 else
 .PHONY: install
 install: build
