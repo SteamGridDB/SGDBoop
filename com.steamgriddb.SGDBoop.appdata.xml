@@ -10,6 +10,7 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.0.11" date="2022-04-28"/>
     <release version="1.0.10" date="2022-04-28"/>
     <release version="1.0.9" date="2022-04-28"/>
   </releases>
