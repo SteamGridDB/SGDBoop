@@ -234,7 +234,18 @@ char* getSteamDestinationDir(char* type) {
 	else {
 		foundValue = 1;
 		strcpy(steamBaseDir, getenv("HOME"));
-		strcat(steamBaseDir, "/.steam/steam");
+
+		char steamFlatpakDir[MAX_PATH];
+		strcpy(steamFlatpakDir, getenv("HOME"));
+		strcat(steamFlatpakDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
+
+		// If flatpaked Steam is installed
+		if (access(steamFlatpakDir, 0) == 0) {
+			strcat(steamBaseDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
+		} else {
+			// Steam installed on host
+			strcat(steamBaseDir, "/.steam/steam");
+		}
 	}
 
 	if (strcmp(type, "icon") == 0) {
