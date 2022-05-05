@@ -172,7 +172,8 @@ int createURIprotocol() {
 	}
 	else {
 		// Do nothing on linux
-		return 0;
+		printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
+		return 1;
 	}
 }
 
@@ -194,7 +195,9 @@ int deleteURIprotocol() {
 		return 0;
 	}
 	else {
-		return 0;
+		// Do nothing on linux
+		printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
+		return 1;
 	}
 }
 
