@@ -10,6 +10,7 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.0.13" date="2022-05-06"/>
     <release version="1.0.12" date="2022-04-28"/>
   </releases>
   <screenshots>
@@ -21,6 +22,9 @@
   <description>
     <p>
       A tool that automatically applies assets from SteamGridDB directly to your Steam library, removing the need to download and set them manually.
+    </p>
+    <p>
+      Note: SGDBoop is intended to be executed from sgdb:// links. Continue setup from step 2 here: https://www.steamgriddb.com/boop
     </p>
   </description>
   <branding>
