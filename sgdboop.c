@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
+#include "include/iup.h"
 
 #ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
 #define OS_Windows 0
@@ -20,7 +21,6 @@ void _pclose(FILE*);
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #define OS_Windows 1
 #include <windows.h>
-#include <libloaderapi.h>
 #endif
 
 #define API_VERSION "1"
@@ -245,7 +245,8 @@ char* getSteamDestinationDir(char* type) {
 		// If flatpaked Steam is installed
 		if (access(steamFlatpakDir, 0) == 0) {
 			strcat(steamBaseDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
-		} else {
+		}
+		else {
 			// Steam installed on host
 			strcat(steamBaseDir, "/.steam/steam");
 		}
@@ -299,8 +300,33 @@ char* getSteamDestinationDir(char* type) {
 	return steamBaseDir;
 }
 
+// Run a gui test. This will be removed.
+void runGuiTest(int argc, char** argv) {
+
+	char** values = malloc(sizeof(char*) * 4);
+	values[0] = malloc(30);
+	values[1] = malloc(30);
+	values[2] = malloc(30);
+	values[3] = malloc(30);
+	strcpy(values[0], "i did nut hit her");
+	strcpy(values[1], "its not true");
+	strcpy(values[2], "its bullshit");
+	strcpy(values[3], "oh hi mark");
+
+	IupOpen(&argc, &argv);
+
+	int* x = malloc(sizeof(int));
+	x = 0;
+
+	int retval = IupListDialog(1, "SGDBoop: Pick a game", 4, (const char**)values, 1, 2, 4, x);
+
+	IupMessage("Your selection", values[retval]);
+}
+
 int main(int argc, char** argv)
 {
+	runGuiTest(argc, argv);
+
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
