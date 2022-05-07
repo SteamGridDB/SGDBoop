@@ -1,8 +1,11 @@
 name: Build Binaries
 
-on:
+on: 
+  push:
+  pull_request:
   release:
     types: [ created ]
+
 
 permissions:
   contents: read
