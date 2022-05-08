@@ -63,3 +63,10 @@ int startsWith(const char* a, const char* b)
     if (strncmp(a, b, strlen(b)) == 0) return 1;
     return 0;
 }
+
+
+// Compare function for sorting
+int compareStrings(const void* a, const void* b)
+{
+    return strcmp(*(const char**)a, *(const char**)b);
+}

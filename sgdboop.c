@@ -25,6 +25,13 @@ void _pclose(FILE*);
 
 #define API_VERSION "1"
 
+typedef struct
+{
+	int index;
+	char name[300];
+	unsigned int id;
+}nonSteamApp;
+
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id)
 {
@@ -201,15 +208,10 @@ int deleteURIprotocol() {
 	}
 }
 
-// Get Steam's destination directory based on artwork type
-char* getSteamDestinationDir(char* type) {
+// Get Steam's base directory
+char* getSteamBaseDir() {
+
 	char* steamBaseDir = malloc(MAX_PATH);
-	char steamConfigFile[MAX_PATH];
-	FILE* fp;
-	char* line = NULL;
-	size_t len = 0;
-	size_t read;
-	char* steamid = malloc(512);
 	int foundValue = 0;
 
 	if (OS_Windows) {
@@ -224,7 +226,7 @@ char* getSteamDestinationDir(char* type) {
 		}
 		_pclose(terminal);
 		if (!foundValue) {
-			exit(1);
+			return NULL;
 		}
 
 		int steamDirLength = strlen(steamBaseDir);
@@ -252,80 +254,136 @@ char* getSteamDestinationDir(char* type) {
 		}
 	}
 
+	if (foundValue < 1) {
+		return NULL;
+	}
+
+	return steamBaseDir;
+}
+
+// Find the most recently logged-in user
+
+char* getMostRecentUser(char* steamBaseDir) {
+
+	char* steamid = malloc(512);
+	char* steamConfigFile = malloc(MAX_PATH);
+	strcpy(steamConfigFile, steamBaseDir);
+	strcat(steamConfigFile, "/config/loginusers.vdf");
+
+	FILE* fp;
+	char* line = NULL;
+	size_t len = 0;
+	size_t read;
+	fp = fopen(steamConfigFile, "r");
+	if (fp == NULL) {
+		free(steamBaseDir);
+		exit(EXIT_FAILURE);
+	}
+
+	while ((read = readLine(&line, &len, fp)) != -1) {
+		if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
+			// Found line with id
+			strcpy(steamid, strstr(line, "7656119"));
+			char* stringEnd = strstr(steamid, "\"");
+			stringEnd[0] = '\0';
+		}
+		else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
+			// Found line mostrecent
+			unsigned long long steamidLongLong = atoll(steamid);
+			steamidLongLong -= 76561197960265728;
+			sprintf(steamid, "%llu", steamidLongLong);
+			break;
+		}
+	}
+
+	fclose(fp);
+	if (line)
+		free(line);
+
+	return steamid;
+}
+
+// Get Steam's destination directory based on artwork type
+char* getSteamDestinationDir(char* type) {
+
+	char* steamBaseDir = getSteamBaseDir();
+	if (steamBaseDir == NULL) {
+		return NULL;
+	}
+
 	if (strcmp(type, "icon") == 0) {
 		// If it's an icon
 		strcat(steamBaseDir, "/appcache/librarycache/");
 	}
 	else {
 		// If it's not an icon, read the loginusers.vdf to find the most recent user
-		strcpy(steamConfigFile, steamBaseDir);
-		strcat(steamConfigFile, "/config/loginusers.vdf");
-		fp = fopen(steamConfigFile, "r");
-		if (fp == NULL) {
-			free(steamBaseDir);
-			exit(EXIT_FAILURE);
-		}
-
-		while ((read = readLine(&line, &len, fp)) != -1) {
-			if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
-				// Found line with id
-				strcpy(steamid, strstr(line, "7656119"));
-				char* stringEnd = strstr(steamid, "\"");
-				stringEnd[0] = '\0';
-			}
-			else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
-				// Found line mostrecent
-				unsigned long long steamidLongLong = atoll(steamid);
-				steamidLongLong -= 76561197960265728;
-				sprintf(steamid, "%llu", steamidLongLong);
-
-				strcat(steamBaseDir, "/userdata/");
-				strcat(steamBaseDir, steamid);
-				strcat(steamBaseDir, "/config/grid/");
-				break;
-			}
-		}
-
-		fclose(fp);
-		if (steamid)
-			free(steamid);
-		if (line)
-			free(line);
-	}
-
-	if (!foundValue) {
-		steamBaseDir = NULL;
+		char* steamid = getMostRecentUser(steamBaseDir);
+		strcat(steamBaseDir, "/userdata/");
+		strcat(steamBaseDir, steamid);
+		strcat(steamBaseDir, "/config/grid/");
 	}
 
 	return steamBaseDir;
 }
 
-// Run a gui test. This will be removed.
-void runGuiTest(int argc, char** argv) {
+// Parse shortcuts file and return a pointer to a list of structs containing the app data
+struct nonSteamApp* getNonSteamApps(steamDestDir) {
 
-	char** values = malloc(sizeof(char*) * 4);
+	char* steamBaseDir = getSteamBaseDir();
+	char* steamid = getMostRecentUser(steamBaseDir);
+	int foundGames = 0;
+
+	// Get the shortcuts.vdf file
+	strcat(steamBaseDir, "/userdata/");
+	strcat(steamBaseDir, steamid);
+	strcat(steamBaseDir, "/config/");
+
+	// Parse the file
+
+	// After all games are found, create a struct array for them
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * foundGames);
+
+	return apps;
+}
+
+// Select a non-steam app from a dropdown list and return its ID
+char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
+
+	int nonSteamAppsCount = 8;
+	char** values = malloc(sizeof(char*) * nonSteamAppsCount);
 	values[0] = malloc(30);
 	values[1] = malloc(30);
 	values[2] = malloc(30);
 	values[3] = malloc(30);
+	values[4] = malloc(30);
+	values[5] = malloc(30);
+	values[6] = malloc(30);
+	values[7] = malloc(30);
 	strcpy(values[0], "i did nut hit her");
 	strcpy(values[1], "its not true");
 	strcpy(values[2], "its bullshit");
 	strcpy(values[3], "oh hi mark");
+	strcpy(values[4], "i did nut hit her");
+	strcpy(values[5], "its not true");
+	strcpy(values[6], "its bullshit");
+	strcpy(values[7], "its bullshit");
 
-	IupOpen(&argc, &argv);
+	char* title = malloc(40 + strlen(sgdbName));
+	strcpy(title, "SGDBoop: Pick a game for '");
+	strcat(title, sgdbName);
+	strcat(title, "'");
 
-	int* x = malloc(sizeof(int));
-	x = 0;
+	qsort(values, nonSteamAppsCount, sizeof(const char*), compareStrings);
 
-	int retval = IupListDialog(1, "SGDBoop: Pick a game", 4, (const char**)values, 1, 2, 4, x);
-
+	int retval = IupListDialog(1, title, nonSteamAppsCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
 	IupMessage("Your selection", values[retval]);
+
+	exit(1);
+	return sgdbName;
 }
 
 int main(int argc, char** argv)
 {
-	runGuiTest(argc, argv);
 
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
@@ -374,6 +432,14 @@ int main(int argc, char** argv)
 		char* steamDestDir = getSteamDestinationDir(type);
 		if (steamDestDir == NULL) {
 			return 83;
+		}
+
+		// If the game is a non-steam app, select an imported app
+		//strcpy(app_id, "nonsteam-MetalGayer");
+		if (startsWith(app_id, "nonsteam-")) {
+			IupOpen(&argc, &argv); // Enable IUP GUI
+			struct apps* nonSteamApps = getNonSteamApps();
+			app_id = selectNonSteamApp(strstr(app_id, "-") + 1, nonSteamApps);
 		}
 
 		// Download asset file
