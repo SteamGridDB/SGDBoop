@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 // Overriding getline_custom
 // https://stackoverflow.com/a/3501681/16642426

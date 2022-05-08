@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "string-helpers.h"
 
 // Overriding getline_custom
 // https://stackoverflow.com/a/3501681/16642426

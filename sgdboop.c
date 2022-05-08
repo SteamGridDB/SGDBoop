@@ -426,7 +426,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		// Add the values to struct
 		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
 		strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
-		sprintf(apps[_nonSteamAppsCount].appid, "%llu\0", appid);
+		sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long) appid);
 		_nonSteamAppsCount++;
 
 		// Move parser to end of app data

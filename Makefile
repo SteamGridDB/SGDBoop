@@ -7,7 +7,7 @@ all: build
 
 .PHONY: build
 build:
-	gcc sgdboop.c curl-helper.c string-helpers.c lib/linux/*.so -lcurl -o linux-release/SGDBoop
+	gcc sgdboop.c curl-helper.c string-helpers.c crc.c lib/linux/*.so -lcurl -o linux-release/SGDBoop
 
 ifdef FLATPAK_ID
 .PHONY: install
