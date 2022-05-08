@@ -10,4 +10,4 @@ size_t readLine(char**, size_t*, FILE*);
 int startsWith(const char*, const char*);
 
 // Compare function for sorting
-int compareStrings(const void* a, const void* b);
+int compareStrings(const void*, const void*);

@@ -3,9 +3,13 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
 #include "include/iup.h"
+#include "crc.h"
+
 
 #ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
 #define OS_Windows 0
@@ -278,7 +282,7 @@ char* getMostRecentUser(char* steamBaseDir) {
 	size_t read;
 	fp = fopen(steamConfigFile, "r");
 	if (fp == NULL) {
-		free(steamBaseDir);
+		free(steamConfigFile);
 		exit(EXIT_FAILURE);
 	}
 
@@ -329,7 +333,7 @@ char* getSteamDestinationDir(char* type) {
 }
 
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
-struct nonSteamApp* getNonSteamApps(steamDestDir) {
+struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
@@ -341,31 +345,97 @@ struct nonSteamApp* getNonSteamApps(steamDestDir) {
 
 	// Parse the file
 	FILE* fp;
-	char* line = NULL;
-	size_t len = 0;
-	size_t read;
-	fp = fopen(shortcutsVdfPath, "r");
+	unsigned char buf[2] = { 0 };
+	size_t bytes = 0;
+	size_t read = sizeof buf;
+	fp = fopen(shortcutsVdfPath, "rb");
 	if (fp == NULL) {
 		free(shortcutsVdfPath);
 		exit(90);
 	}
 
-	while ((read = readLine(&line, &len, fp)) != -1) {
-		// Add code for parsing here
+	fseek(fp, 0L, SEEK_END);
+	size_t filesize = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	unsigned char* fileContent = malloc(filesize + 1);
+	unsigned int currentFileByte = 0;
+
+	// Load the vdf in memory and fix string-related issues
+	while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+		for (int i = 0; i < sizeof buf; i++) {
+			if (buf[i] == 0x00) {
+				fileContent[currentFileByte] = 0x03;
+			}
+			else {
+				fileContent[currentFileByte] = buf[i];
+			}
+			currentFileByte++;
+		}
+	}
+	fileContent[filesize] = '\0';
+	fclose(fp);
+
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
+	unsigned char* parsingChar = fileContent;
+	unsigned char parsingAppid[512];
+	uint32_t intBytes[4];
+	uint64_t appid = 0;
+	crcInit();
+
+	// Parse the vdf content
+	while (strstr(parsingChar, "appname")) {
+
+		unsigned char* nameStartChar = strstr(parsingChar, "appname") + 8;
+		unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
+
+		unsigned char* exeStartChar = strstr(parsingChar, "exe") + 4;
+		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
+
+		if (strstr(parsingChar, "appid") > 0 && strstr(parsingChar, "appid") < strstr(parsingChar, "\x08") && !(strcmp(type, "grid") && strcmp(orientation, "p"))) {
+			unsigned char* hexBytes = strstr(parsingChar, "appid") + 6;
+			intBytes[0] = *(hexBytes + 3);
+			intBytes[1] = *(hexBytes + 2);
+			intBytes[2] = *(hexBytes + 1);
+			intBytes[3] = *(hexBytes + 0);
+
+			appid =
+				((uint64_t)intBytes[0] << 24) |
+				((uint64_t)intBytes[1] << 16) |
+				((uint64_t)intBytes[2] << 8) |
+				((uint64_t)intBytes[3] << 0);
+		}
+		else {
+
+			*nameEndChar = '\0';
+			*exeEndChar = '\0';
+
+			strcpy(parsingAppid, exeStartChar);
+			strcat(parsingAppid, nameStartChar);
+			appid = crcFast(parsingAppid, 4);
+		}
+
+		*nameEndChar = '\0';
+
+		appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
+
+		// Add the values to struct
+		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+		strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
+		sprintf(apps[_nonSteamAppsCount].appid, "%llu\0", appid);
+		_nonSteamAppsCount++;
+
+		// Move parser to end of app data
+		*nameEndChar = 0x03;
+		parsingChar = strstr(parsingChar, "\x08") + 2;
 	}
 
-	fclose(fp);
-	if (line)
-		free(line);
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
-		IupMessage("SGDBoop Error", "No non-steam apps were found!");
+		IupMessage("SGDBoop Error", "Could not any find non-Steam apps.");
 		exit(91);
 	}
-
-	// After all games are found, create a struct array for them
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * _nonSteamAppsCount);
 
 	return apps;
 }
@@ -375,7 +445,6 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
 	char temp[512];
 	sprintf(temp, "%d", _nonSteamAppsCount);
-	IupMessage("Found games", temp);
 	char* appid = malloc(128);
 
 	char** values = malloc(sizeof(char*) * _nonSteamAppsCount);
@@ -391,12 +460,16 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
 
 	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
-	IupMessage("Your selection", values[retval]);
 
-	strcpy(appid, apps[retval].appid);
+	// Find match
+	for (int i = 0; i < _nonSteamAppsCount; i++) {
+		if (strcmp(apps[i].name, values[retval]) == 0) {
+			strcpy(appid, apps[i].appid);
+		}
+	}
+	
 	free(apps);
 
-	exit(1);
 	return appid;
 }
 
@@ -446,23 +519,27 @@ int main(int argc, char** argv)
 		char* orientation = apiValues[1];
 		char* assetUrl = apiValues[2];
 
-		// Get Steam base dir
-		char* steamDestDir = getSteamDestinationDir(type);
-		if (steamDestDir == NULL) {
-			return 83;
-		}
-
 		// If the game is a non-steam app, select an imported app
 		if (startsWith(app_id, "nonsteam-")) {
+
+			if (strcmp(type, "icon") == 0) {
+				return 92;
+			}
 
 			// Enable IUP GUI
 			IupOpen(&argc, &argv);
 
 			// Get non-steam apps
-			struct nonSteamApp* apps = getNonSteamApps();
+			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
 
 			// Show selection screen and return the appid
 			app_id = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+		}
+
+		// Get Steam base dir
+		char* steamDestDir = getSteamDestinationDir(type);
+		if (steamDestDir == NULL) {
+			return 83;
 		}
 
 		// Download asset file

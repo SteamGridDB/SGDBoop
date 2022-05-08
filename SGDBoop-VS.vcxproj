@@ -140,11 +140,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="crc.c" />
     <ClCompile Include="curl-helper.c" />
     <ClCompile Include="sgdboop.c" />
     <ClCompile Include="string-helpers.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="crc.h" />
     <ClInclude Include="curl-helper.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="string-helpers.h" />
