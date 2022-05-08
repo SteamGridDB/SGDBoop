@@ -29,10 +29,10 @@ typedef struct nonSteamApp
 {
 	int index;
 	char name[300];
-	unsigned int appid;
+	char appid[128];
 } nonSteamApp;
 
-int _nonSteamGamesCount = 0;
+int _nonSteamAppsCount = 0;
 
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id)
@@ -359,13 +359,13 @@ struct nonSteamApp* getNonSteamApps(steamDestDir) {
 		free(line);
 
 	// Exit with an error if no non-steam apps were found
-	if (_nonSteamGamesCount < 1) {
+	if (_nonSteamAppsCount < 1) {
 		IupMessage("SGDBoop Error", "No non-steam apps were found!");
 		exit(91);
 	}
 
 	// After all games are found, create a struct array for them
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * _nonSteamGamesCount);
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * _nonSteamAppsCount);
 
 	return apps;
 }
@@ -374,13 +374,13 @@ struct nonSteamApp* getNonSteamApps(steamDestDir) {
 char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
 	char temp[512];
-	sprintf(temp, "%d", _nonSteamGamesCount);
+	sprintf(temp, "%d", _nonSteamAppsCount);
 	IupMessage("Found games", temp);
 	char* appid = malloc(128);
 
-	char** values = malloc(sizeof(char*) * _nonSteamGamesCount);
-	for (int i = 0; i < nonSteamAppsCount; i++) {
-		values[i] = &apps[i].name;
+	char** values = malloc(sizeof(char*) * _nonSteamAppsCount);
+	for (int i = 0; i < _nonSteamAppsCount; i++) {
+		values[i] = apps[i].name;
 	}
 
 	char* title = malloc(40 + strlen(sgdbName));
@@ -388,9 +388,9 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 	strcat(title, sgdbName);
 	strcat(title, "'");
 
-	qsort(values, _nonSteamGamesCount, sizeof(const char*), compareStrings);
+	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
 
-	int retval = IupListDialog(1, title, _nonSteamGamesCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
+	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
 	IupMessage("Your selection", values[retval]);
 
 	strcpy(appid, apps[retval].appid);
