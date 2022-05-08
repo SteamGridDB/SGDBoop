@@ -25,12 +25,14 @@ void _pclose(FILE*);
 
 #define API_VERSION "1"
 
-typedef struct
+typedef struct nonSteamApp
 {
 	int index;
 	char name[300];
-	unsigned int id;
-}nonSteamApp;
+	unsigned int appid;
+} nonSteamApp;
+
+int _nonSteamGamesCount = 0;
 
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id)
@@ -329,19 +331,41 @@ char* getSteamDestinationDir(char* type) {
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
 struct nonSteamApp* getNonSteamApps(steamDestDir) {
 
-	char* steamBaseDir = getSteamBaseDir();
-	char* steamid = getMostRecentUser(steamBaseDir);
-	int foundGames = 0;
+	char* shortcutsVdfPath = getSteamBaseDir();
+	char* steamid = getMostRecentUser(shortcutsVdfPath);
 
 	// Get the shortcuts.vdf file
-	strcat(steamBaseDir, "/userdata/");
-	strcat(steamBaseDir, steamid);
-	strcat(steamBaseDir, "/config/");
+	strcat(shortcutsVdfPath, "/userdata/");
+	strcat(shortcutsVdfPath, steamid);
+	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
 
 	// Parse the file
+	FILE* fp;
+	char* line = NULL;
+	size_t len = 0;
+	size_t read;
+	fp = fopen(shortcutsVdfPath, "r");
+	if (fp == NULL) {
+		free(shortcutsVdfPath);
+		exit(90);
+	}
+
+	while ((read = readLine(&line, &len, fp)) != -1) {
+		// Add code for parsing here
+	}
+
+	fclose(fp);
+	if (line)
+		free(line);
+
+	// Exit with an error if no non-steam apps were found
+	if (_nonSteamGamesCount < 1) {
+		IupMessage("SGDBoop Error", "No non-steam apps were found!");
+		exit(91);
+	}
 
 	// After all games are found, create a struct array for them
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * foundGames);
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * _nonSteamGamesCount);
 
 	return apps;
 }
@@ -349,37 +373,31 @@ struct nonSteamApp* getNonSteamApps(steamDestDir) {
 // Select a non-steam app from a dropdown list and return its ID
 char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
-	int nonSteamAppsCount = 8;
-	char** values = malloc(sizeof(char*) * nonSteamAppsCount);
-	values[0] = malloc(30);
-	values[1] = malloc(30);
-	values[2] = malloc(30);
-	values[3] = malloc(30);
-	values[4] = malloc(30);
-	values[5] = malloc(30);
-	values[6] = malloc(30);
-	values[7] = malloc(30);
-	strcpy(values[0], "i did nut hit her");
-	strcpy(values[1], "its not true");
-	strcpy(values[2], "its bullshit");
-	strcpy(values[3], "oh hi mark");
-	strcpy(values[4], "i did nut hit her");
-	strcpy(values[5], "its not true");
-	strcpy(values[6], "its bullshit");
-	strcpy(values[7], "its bullshit");
+	char temp[512];
+	sprintf(temp, "%d", _nonSteamGamesCount);
+	IupMessage("Found games", temp);
+	char* appid = malloc(128);
+
+	char** values = malloc(sizeof(char*) * _nonSteamGamesCount);
+	for (int i = 0; i < nonSteamAppsCount; i++) {
+		values[i] = &apps[i].name;
+	}
 
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
 	strcat(title, sgdbName);
 	strcat(title, "'");
 
-	qsort(values, nonSteamAppsCount, sizeof(const char*), compareStrings);
+	qsort(values, _nonSteamGamesCount, sizeof(const char*), compareStrings);
 
-	int retval = IupListDialog(1, title, nonSteamAppsCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
+	int retval = IupListDialog(1, title, _nonSteamGamesCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
 	IupMessage("Your selection", values[retval]);
 
+	strcpy(appid, apps[retval].appid);
+	free(apps);
+
 	exit(1);
-	return sgdbName;
+	return appid;
 }
 
 int main(int argc, char** argv)
@@ -435,11 +453,16 @@ int main(int argc, char** argv)
 		}
 
 		// If the game is a non-steam app, select an imported app
-		//strcpy(app_id, "nonsteam-MetalGayer");
 		if (startsWith(app_id, "nonsteam-")) {
-			IupOpen(&argc, &argv); // Enable IUP GUI
-			struct apps* nonSteamApps = getNonSteamApps();
-			app_id = selectNonSteamApp(strstr(app_id, "-") + 1, nonSteamApps);
+
+			// Enable IUP GUI
+			IupOpen(&argc, &argv);
+
+			// Get non-steam apps
+			struct nonSteamApp* apps = getNonSteamApps();
+
+			// Show selection screen and return the appid
+			app_id = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 		}
 
 		// Download asset file
