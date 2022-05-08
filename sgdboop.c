@@ -355,7 +355,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	}
 
 	fseek(fp, 0L, SEEK_END);
-	size_t filesize = ftell(fp);
+	size_t filesize = ftell(fp) + 1;
 	fseek(fp, 0, SEEK_SET);
 
 	unsigned char* fileContent = malloc(filesize + 1);
@@ -373,6 +373,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			currentFileByte++;
 		}
 	}
+	fileContent[filesize - 1] = '\x08';
 	fileContent[filesize] = '\0';
 	fclose(fp);
 
