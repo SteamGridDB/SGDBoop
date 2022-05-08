@@ -395,8 +395,11 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		unsigned char* exeStartChar = strstr_i(parsingChar, "exe") + 4;
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
-		if (strstr_i(parsingChar, "appid") > 0 && strstr_i(parsingChar, "appid") < strstr(parsingChar, "\x08") && !(strcmp(type, "grid") && strcmp(orientation, "p"))) {
-			unsigned char* hexBytes = strstr(parsingChar, "appid") + 6;
+		unsigned char* appidPtr = strstr_i(parsingChar, "appid");
+		unsigned char* endPtr = strstr_i(parsingChar, "\x08");
+
+		if (appidPtr > 0 && appidPtr < endPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
+			unsigned char* hexBytes = appidPtr + 6;
 			intBytes[0] = *(hexBytes + 3);
 			intBytes[1] = *(hexBytes + 2);
 			intBytes[2] = *(hexBytes + 1);
@@ -416,6 +419,8 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			strcpy(parsingAppid, exeStartChar);
 			strcat(parsingAppid, nameStartChar);
 			appid = crcFast(parsingAppid, strlen(parsingAppid));
+
+			*exeEndChar = '\x03';
 		}
 
 		*nameEndChar = '\0'; // Close name string
@@ -431,7 +436,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		// Move parser to end of app data
 		*nameEndChar = 0x03; // Revent name string to prevent string-related problems
-		parsingChar = strstr(parsingChar, "\x08") + 2;
+		parsingChar = endPtr + 2;
 	}
 
 
