@@ -64,9 +64,23 @@ int startsWith(const char* a, const char* b)
 	return 0;
 }
 
-
 // Compare function for sorting
 int compareStrings(const void* a, const void* b)
 {
 	return strcmp(*(const char**)a, *(const char**)b);
+}
+
+// Case insensitive strstr
+// https://stackoverflow.com/a/56513982/16642426
+char* strstr_i(const char* p1, const char* p2) {
+	for (;; p1++) {
+		for (size_t i = 0;; i++) {
+			if (p2[i] == '\0')
+				return (char*)p1;
+			if (tolower((unsigned char)p1[i]) != tolower((unsigned char)p2[i]))
+				break;
+		}
+		if (*p1 == '\0')
+			return 0;
+	}
 }

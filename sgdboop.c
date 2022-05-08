@@ -353,7 +353,6 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		free(shortcutsVdfPath);
 		exit(90);
 	}
-
 	fseek(fp, 0L, SEEK_END);
 	size_t filesize = ftell(fp) + 1;
 	fseek(fp, 0, SEEK_SET);
@@ -375,6 +374,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	}
 	fileContent[filesize - 1] = '\x08';
 	fileContent[filesize] = '\0';
+
 	fclose(fp);
 
 	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
@@ -385,15 +385,17 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	crcInit();
 
 	// Parse the vdf content
-	while (strstr(parsingChar, "appname")) {
+	while (strstr_i(parsingChar, "appname") > 0) {
 
-		unsigned char* nameStartChar = strstr(parsingChar, "appname") + 8;
+		// Find app name
+		unsigned char* nameStartChar = strstr_i(parsingChar, "appname") + 8;
 		unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
 
-		unsigned char* exeStartChar = strstr(parsingChar, "exe") + 4;
+		// Find exe path
+		unsigned char* exeStartChar = strstr_i(parsingChar, "exe") + 4;
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
-		if (strstr(parsingChar, "appid") > 0 && strstr(parsingChar, "appid") < strstr(parsingChar, "\x08") && !(strcmp(type, "grid") && strcmp(orientation, "p"))) {
+		if (strstr_i(parsingChar, "appid") > 0 && strstr_i(parsingChar, "appid") < strstr(parsingChar, "\x08") && !(strcmp(type, "grid") && strcmp(orientation, "p"))) {
 			unsigned char* hexBytes = strstr(parsingChar, "appid") + 6;
 			intBytes[0] = *(hexBytes + 3);
 			intBytes[1] = *(hexBytes + 2);
@@ -413,11 +415,12 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 			strcpy(parsingAppid, exeStartChar);
 			strcat(parsingAppid, nameStartChar);
-			appid = crcFast(parsingAppid, 4);
+			appid = crcFast(parsingAppid, strlen(parsingAppid));
 		}
 
-		*nameEndChar = '\0';
+		*nameEndChar = '\0'; // Close name string
 
+		// Do math magic. Valve pls fix
 		appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
 
 		// Add the values to struct
@@ -427,7 +430,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		_nonSteamAppsCount++;
 
 		// Move parser to end of app data
-		*nameEndChar = 0x03;
+		*nameEndChar = 0x03; // Revent name string to prevent string-related problems
 		parsingChar = strstr(parsingChar, "\x08") + 2;
 	}
 

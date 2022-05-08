@@ -11,3 +11,7 @@ int startsWith(const char*, const char*);
 
 // Compare function for sorting
 int compareStrings(const void*, const void*);
+
+// Case insensitive strstr
+// https://stackoverflow.com/a/56513982/16642426
+char* strstr_i(const char*, const char*);
