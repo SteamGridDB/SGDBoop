@@ -138,6 +138,9 @@
     <Link>
       <AdditionalDependencies>freetype6.lib;ftgl.lib;iup.lib;iupcd.lib;iupcontrols.lib;iupfiledlg.lib;iupgl.lib;iupglcontrols.lib;iupim.lib;iupimglib.lib;iupole.lib;iupstub.lib;iuptuio.lib;iupweb.lib;iup_mglplot.lib;iup_plot.lib;iup_scintilla.lib;zlib1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="crc.c" />
