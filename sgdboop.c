@@ -39,7 +39,7 @@ typedef struct nonSteamApp
 int _nonSteamAppsCount = 0;
 
 // Call the BOOP API
-char** callAPI(char* grid_type, char* grid_id)
+char** callAPI(char* grid_type, char* grid_id, char* mode)
 {
 	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
 	char apiVersionHeader[20] = "X-BOOP-API-VER: ";
@@ -51,6 +51,10 @@ char** callAPI(char* grid_type, char* grid_id)
 	strcat(url, grid_type);
 	strcat(url, "/");
 	strcat(url, grid_id);
+
+	if (strcmp(mode, "nonsteam") == 0) {
+		strcat(url, "?nonsteam");
+	}
 
 	CURL* curl;
 	CURLcode res;
@@ -495,7 +499,7 @@ int main(int argc, char** argv)
 	else {
 
 		if (OS_Windows) {
-			//MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
 		}
 
 		// If argument is unregister, unregister and exit
@@ -519,8 +523,18 @@ int main(int argc, char** argv)
 		grid_id[0] = '\0';         // End app_id string
 		grid_id += 1;              // Move 1 place
 
+		char* mode = strstr(grid_id, "/"); // If there's a method string, use it
+		if (mode > 0) {
+			mode[0] = '\0';
+			mode += 1;
+		}
+		else {
+			mode = malloc(sizeof("default") + 1);
+			strcpy(mode, "default");
+		}
+
 		// Get asset URL
-		char** apiValues = callAPI(type, grid_id);
+		char** apiValues = callAPI(type, grid_id, mode);
 		if (apiValues == NULL) {
 			return 82;
 		}
