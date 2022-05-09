@@ -65,10 +65,22 @@ int startsWith(const char* a, const char* b)
 	return 0;
 }
 
-// Compare function for sorting
-int compareStrings(const void* a, const void* b)
+// Compare function for qsort
+// https://codereview.stackexchange.com/a/256749
+int ci_strcmp(const unsigned char* s1, const unsigned char* s2)
 {
-	return strcmp(*(const char**)a, *(const char**)b);
+	for (;;) {
+		int c1 = tolower(*s1++);
+		int c2 = tolower(*s2++);
+		int result = (c1 > c2) - (c1 < c2);
+		if (result || !c1) return result;
+	}
+}
+int compareStrings(const void* p1, const void* p2)
+{
+	const unsigned char* const* sp1 = p1;
+	const unsigned char* const* sp2 = p2;
+	return ci_strcmp(*sp1, *sp2);
 }
 
 // Case insensitive strstr

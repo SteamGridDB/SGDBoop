@@ -354,7 +354,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		exit(90);
 	}
 	fseek(fp, 0L, SEEK_END);
-	size_t filesize = ftell(fp) + 1;
+	size_t filesize = ftell(fp) + 2;
 	fseek(fp, 0, SEEK_SET);
 
 	unsigned char* fileContent = malloc(filesize + 1);
@@ -372,7 +372,8 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			currentFileByte++;
 		}
 	}
-	fileContent[filesize - 1] = '\x08';
+	fileContent[filesize - 2] = '\x08';
+	fileContent[filesize - 1] = '\x03';
 	fileContent[filesize] = '\0';
 
 	fclose(fp);
@@ -396,9 +397,9 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
 		unsigned char* appidPtr = strstr_i(parsingChar, "appid");
-		unsigned char* endPtr = strstr_i(parsingChar, "\x08");
+		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08\x03");
 
-		if (appidPtr > 0 && appidPtr < endPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
+		if (appidPtr > 0 && appidPtr < appBlockEndPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
 			unsigned char* hexBytes = appidPtr + 6;
 			intBytes[0] = *(hexBytes + 3);
 			intBytes[1] = *(hexBytes + 2);
@@ -436,9 +437,8 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		// Move parser to end of app data
 		*nameEndChar = 0x03; // Revent name string to prevent string-related problems
-		parsingChar = endPtr + 2;
+		parsingChar = appBlockEndPtr + 2;
 	}
-
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
@@ -495,7 +495,7 @@ int main(int argc, char** argv)
 	else {
 
 		if (OS_Windows) {
-			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+			//MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
 		}
 
 		// If argument is unregister, unregister and exit

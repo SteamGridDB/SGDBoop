@@ -10,7 +10,9 @@ size_t readLine(char**, size_t*, FILE*);
 // https://stackoverflow.com/a/15515276/16642426
 int startsWith(const char*, const char*);
 
-// Compare function for sorting
+// Compare strings for qsort
+// https://codereview.stackexchange.com/a/256749
+int ci_strcmp(const unsigned char*, const unsigned char*);
 int compareStrings(const void*, const void*);
 
 // Case insensitive strstr
