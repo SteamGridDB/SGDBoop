@@ -11,8 +11,7 @@ size_t readLine(char**, size_t*, FILE*);
 int startsWith(const char*, const char*);
 
 // Compare strings for qsort
-// https://codereview.stackexchange.com/a/256749
-int ci_strcmp(const unsigned char*, const unsigned char*);
+// https://stackoverflow.com/a/4061231/16642426
 int compareStrings(const void*, const void*);
 
 // Case insensitive strstr

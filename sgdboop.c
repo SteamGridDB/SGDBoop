@@ -143,12 +143,14 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		fclose(fp);
 		if (res != 0) {
 			remove(outfilename);
+			free(outfilename);
 			return NULL;
 		}
 
 		return outfilename;
 	}
 
+	free(outfilename);
 	return NULL;
 }
 
@@ -236,6 +238,7 @@ char* getSteamBaseDir() {
 		}
 		_pclose(terminal);
 		if (!foundValue) {
+			free(steamBaseDir);
 			return NULL;
 		}
 
@@ -265,6 +268,7 @@ char* getSteamBaseDir() {
 	}
 
 	if (foundValue < 1) {
+		free(steamBaseDir);
 		return NULL;
 	}
 
@@ -286,8 +290,9 @@ char* getMostRecentUser(char* steamBaseDir) {
 	size_t read;
 	fp = fopen(steamConfigFile, "r");
 	if (fp == NULL) {
+		free(steamid);
 		free(steamConfigFile);
-		exit(EXIT_FAILURE);
+		exit(95);
 	}
 
 	while ((read = readLine(&line, &len, fp)) != -1) {
@@ -402,7 +407,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
 		unsigned char* appidPtr = strstr_i(parsingChar, "appid");
-		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08\x03");
+		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08\x03"); // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
 
 		if (appidPtr > 0 && appidPtr < appBlockEndPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
 			unsigned char* hexBytes = appidPtr + 6;
@@ -441,15 +446,19 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		_nonSteamAppsCount++;
 
 		// Move parser to end of app data
-		*nameEndChar = 0x03; // Revent name string to prevent string-related problems
+		*nameEndChar = 0x03; // Revert name string to prevent string-related problems
 		parsingChar = appBlockEndPtr + 2;
 	}
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
 		IupMessage("SGDBoop Error", "Could not any find non-Steam apps.");
+		free(fileContent);
+		free(apps);
 		exit(91);
 	}
+
+	free(fileContent);
 
 	return apps;
 }
@@ -463,7 +472,8 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
 	char** values = malloc(sizeof(char*) * _nonSteamAppsCount);
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		values[i] = apps[i].name;
+		values[i] = malloc(strlen(apps[i].name) + 1);
+		strcpy(values[i], apps[i].name);
 	}
 
 	char* title = malloc(40 + strlen(sgdbName));
@@ -479,10 +489,13 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
 		if (strcmp(apps[i].name, values[retval]) == 0) {
 			strcpy(appid, apps[i].appid);
+			break;
 		}
 	}
 
 	free(apps);
+	free(values);
+	free(title);
 
 	return appid;
 }

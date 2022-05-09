@@ -3,6 +3,10 @@
 #include <string.h>
 #include "string-helpers.h"
 
+#if defined(_WIN32) || defined(WIN32)
+#define strcasecmp _stricmp
+#endif
+
 // Overriding getline_custom
 // https://stackoverflow.com/a/3501681/16642426
 size_t readLine(char** lineptr, size_t* n, FILE* stream) {
@@ -66,21 +70,12 @@ int startsWith(const char* a, const char* b)
 }
 
 // Compare function for qsort
-// https://codereview.stackexchange.com/a/256749
-int ci_strcmp(const unsigned char* s1, const unsigned char* s2)
-{
-	for (;;) {
-		int c1 = tolower(*s1++);
-		int c2 = tolower(*s2++);
-		int result = (c1 > c2) - (c1 < c2);
-		if (result || !c1) return result;
-	}
-}
+// https://stackoverflow.com/a/4061231/16642426
 int compareStrings(const void* p1, const void* p2)
 {
-	const unsigned char* const* sp1 = p1;
-	const unsigned char* const* sp2 = p2;
-	return ci_strcmp(*sp1, *sp2);
+	const char** ia = (const char**)p1;
+	const char** ib = (const char**)p2;
+	return strcasecmp(*ia, *ib);
 }
 
 // Case insensitive strstr
