@@ -65,6 +65,9 @@ jobs:
 
     - name: Build
       run: make
+
+    - name: Copy libiup.so to linux-release/
+      run: cp lib/linux/libiup.so linux-release/
       
     - uses: actions/upload-artifact@v3
       with:
