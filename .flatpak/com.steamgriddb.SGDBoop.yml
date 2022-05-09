@@ -4,6 +4,7 @@ runtime-version: '21.08'
 sdk: org.freedesktop.Sdk
 command: SGDBoop
 finish-args:
+  - --socket=x11
   - --share=network
   - --filesystem=~/.steam/steam/config/loginusers.vdf:ro # Used for reading SteamID
   - --filesystem=~/.steam/steam/userdata:rw # For saving custom images except icons
