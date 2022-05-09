@@ -355,6 +355,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	fp = fopen(shortcutsVdfPath, "rb");
 	if (fp == NULL) {
 		free(shortcutsVdfPath);
+		IupMessage("SGDBoop Error", "Could not any find non-Steam apps.");
 		exit(90);
 	}
 	fseek(fp, 0L, SEEK_END);
