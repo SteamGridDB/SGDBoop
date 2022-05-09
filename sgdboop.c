@@ -483,7 +483,15 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
 
-	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, 0, strlen(title) - 15, 10, NULL);
+	int selection = 0;
+	for (int i = 0; i < _nonSteamAppsCount; i++) {
+		if (strcmp(values[i], sgdbName) == 0) {
+			selection = i + 1;
+			break;
+		}
+	}
+
+	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 13, 14, NULL);
 
 	// Find match
 	for (int i = 0; i < _nonSteamAppsCount; i++) {

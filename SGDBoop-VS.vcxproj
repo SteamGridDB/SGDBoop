@@ -141,9 +141,7 @@
     <PreBuildEvent>
       <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
     </PreBuildEvent>
-    <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
-    </ClCompile>
+    <ClCompile />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="crc.c" />
