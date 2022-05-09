@@ -437,7 +437,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		// Add the values to struct
 		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
 		strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
-		sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long) appid);
+		sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
 		_nonSteamAppsCount++;
 
 		// Move parser to end of app data
@@ -481,15 +481,24 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 			strcpy(appid, apps[i].appid);
 		}
 	}
-	
+
 	free(apps);
 
 	return appid;
 }
 
+// Add an icon to IUP windows
+void loadIupIcon() {
+	unsigned char image_data[256] = { 0 };
+
+	Ihandle* sgdboop_image = IupImage(16, 16, image_data);
+	IupSetAttribute(sgdboop_image, "0", "BGCOLOR");
+	IupSetHandle("SGDBOOPIMAGE", sgdboop_image);
+	IupSetGlobal("ICON", "SGDBOOPIMAGE");
+}
+
 int main(int argc, char** argv)
 {
-
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
@@ -552,6 +561,7 @@ int main(int argc, char** argv)
 
 			// Enable IUP GUI
 			IupOpen(&argc, &argv);
+			loadIupIcon();
 
 			// Get non-steam apps
 			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
