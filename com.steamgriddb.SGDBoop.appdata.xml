@@ -10,12 +10,26 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.1.0" date="2022-05-11">
+      <description>
+        <p>Added ability to change assets for Non-Steam apps.</p>
+      </description>
+    </release>
     <release version="1.0.13" date="2022-05-06"/>
     <release version="1.0.12" date="2022-04-28"/>
   </releases>
   <screenshots>
     <screenshot type="default">
-      <image type="source" height="936" width="1542">https://i.imgur.com/Va0XekZ.png</image>
+      <caption>Custom assets in Steam library</caption>
+      <image>https://github.com/SteamGridDB/SGDBoop/raw/main/res/screenshots/in-library.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Button to press to trigger SGDBoop</caption>
+      <image>https://github.com/SteamGridDB/SGDBoop/raw/main/res/screenshots/apply-with-boop.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Button to enable "Apply with BOOP" button</caption>
+      <image>https://github.com/SteamGridDB/SGDBoop/raw/main/res/screenshots/enable-boop.png</image>
     </screenshot>
   </screenshots>
   <summary>Apply SteamGridDB assets to Steam</summary>
@@ -24,7 +38,7 @@
       A tool that automatically applies assets from SteamGridDB directly to your Steam library, removing the need to download and set them manually.
     </p>
     <p>
-      Note: SGDBoop is intended to be executed from sgdb:// links. Continue setup from step 2 here: https://www.steamgriddb.com/boop
+      Note: SGDBoop is intended to be executed via <code>sgdb://</code> links on SteamGridDB. Continue setup from "Step 2" here: https://www.steamgriddb.com/boop
     </p>
   </description>
   <branding>
