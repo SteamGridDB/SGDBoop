@@ -12,7 +12,7 @@
   <releases>
     <release version="1.1.0" date="2022-05-11">
       <description>
-        <p>Added ability to change assets for Non-Steam apps.</p>
+        <p>Added ability to change assets for non-Steam apps.</p>
       </description>
     </release>
     <release version="1.0.13" date="2022-05-06"/>
