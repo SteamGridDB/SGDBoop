@@ -407,7 +407,10 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
 		unsigned char* appidPtr = strstr_i(parsingChar, "appid");
-		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08\x03"); // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+		while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
+			appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
+		}
 
 		if (appidPtr > 0 && appidPtr < appBlockEndPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
 			unsigned char* hexBytes = appidPtr + 6;
@@ -556,8 +559,8 @@ int main(int argc, char** argv)
 
 		char* mode = strstr(grid_id, "/"); // If there's a method string, use it
 		if (mode > 0) {
-			mode[0] = '\0';
-			mode += 1;
+			*mode = '\0';
+			mode++;
 		}
 		else {
 			mode = malloc(sizeof("default") + 1);
