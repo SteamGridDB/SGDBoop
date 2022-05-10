@@ -53,7 +53,7 @@ char** callAPI(char* grid_type, char* grid_id, char* mode)
 	strcat(url, grid_id);
 
 	if (strcmp(mode, "nonsteam") == 0) {
-		strcat(url, "?nonsteam");
+		strcat(url, "?nonsteam=1");
 	}
 
 	CURL* curl;
