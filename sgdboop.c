@@ -57,7 +57,7 @@ char** callAPI(char* grid_type, char* grid_id, char* mode)
 	strcat(url, grid_id);
 
 	if (strcmp(mode, "nonsteam") == 0) {
-		strcat(url, "?nonsteam");
+		strcat(url, "?nonsteam=1");
 	}
 
 	CURL* curl;
@@ -364,7 +364,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	fp = fopen(shortcutsVdfPath, "rb");
 	if (fp == NULL) {
 		free(shortcutsVdfPath);
-		IupMessage("SGDBoop Error", "Could not any find non-Steam apps.");
+		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
 		exit(90);
 	}
 	fseek(fp, 0L, SEEK_END);
@@ -480,7 +480,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
-		IupMessage("SGDBoop Error", "Could not any find non-Steam apps.");
+		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
 		free(fileContent);
 		free(apps);
 		exit(91);
@@ -523,6 +523,14 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 
 	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 12, 14, NULL);
 
+	// Exit when use clicks cancel
+	if (retval < 0) {
+		free(apps);
+		free(values);
+		free(title);
+		exit(0);
+	}
+	
 	// Find match
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
 		if (strcmp(apps[i].name, values[retval]) == 0) {
