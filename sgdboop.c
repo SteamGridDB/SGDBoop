@@ -25,6 +25,9 @@ void _pclose(FILE*);
 #elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
 #define OS_Windows 1
 #include <windows.h>
+int symlink(char* a, char* b) {
+	return CreateHardLink(b, a, NULL);
+}
 #endif
 
 #define API_VERSION "1"
@@ -34,6 +37,7 @@ typedef struct nonSteamApp
 	int index;
 	char name[300];
 	char appid[128];
+	char appid_old[128];
 } nonSteamApp;
 
 int _nonSteamAppsCount = 0;
@@ -392,11 +396,18 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	unsigned char* parsingChar = fileContent;
 	unsigned char parsingAppid[512];
 	uint32_t intBytes[4];
-	uint64_t appid = 0;
 	crcInit();
+
+	int old_id_required = 0;
+	if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+		old_id_required = 1;
+	}
 
 	// Parse the vdf content
 	while (strstr_i(parsingChar, "appname") > 0) {
+
+		uint64_t appid_old = 0;
+		uint64_t appid = 0;
 
 		// Find app name
 		unsigned char* nameStartChar = strstr_i(parsingChar, "appname") + 8;
@@ -412,7 +423,8 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
 		}
 
-		if (appidPtr > 0 && appidPtr < appBlockEndPtr && !(strcmp(type, "grid") == 0 && strcmp(orientation, "h") == 0)) {
+		// If appid was found in this app block
+		if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
 			unsigned char* hexBytes = appidPtr + 6;
 			intBytes[0] = *(hexBytes + 3);
 			intBytes[1] = *(hexBytes + 2);
@@ -425,14 +437,19 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 				((uint64_t)intBytes[2] << 8) |
 				((uint64_t)intBytes[3] << 0);
 		}
-		else {
+
+		// If an old appid is required, calculate it
+		if (appid == 0 || old_id_required) {
 
 			*nameEndChar = '\0';
 			*exeEndChar = '\0';
 
 			strcpy(parsingAppid, exeStartChar);
 			strcat(parsingAppid, nameStartChar);
-			appid = crcFast(parsingAppid, strlen(parsingAppid));
+			appid_old = crcFast(parsingAppid, strlen(parsingAppid));
+			if (appid == 0) {
+				appid = appid_old;
+			}
 
 			*exeEndChar = '\x03';
 		}
@@ -441,6 +458,14 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		// Do math magic. Valve pls fix
 		appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
+
+		if (old_id_required) {
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
+			sprintf(apps[_nonSteamAppsCount].appid_old, "%llu", (unsigned long long)appid_old);
+		}
+		else {
+			strcpy(apps[_nonSteamAppsCount].appid_old, "none");
+		}
 
 		// Add the values to struct
 		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
@@ -467,7 +492,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 }
 
 // Select a non-steam app from a dropdown list and return its ID
-char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
+struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
 	char temp[512];
 	sprintf(temp, "%d", _nonSteamAppsCount);
@@ -478,6 +503,8 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 		values[i] = malloc(strlen(apps[i].name) + 1);
 		strcpy(values[i], apps[i].name);
 	}
+
+	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
@@ -494,12 +521,17 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 		}
 	}
 
-	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 13, 14, NULL);
+	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 12, 14, NULL);
 
 	// Find match
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
 		if (strcmp(apps[i].name, values[retval]) == 0) {
-			strcpy(appid, apps[i].appid);
+			strcpy(appData->appid, apps[i].appid);
+			strcpy(appData->name, apps[i].name);
+			appData->index = apps[i].index;
+			if (strcmp(apps[i].appid_old, "none") != 0) {
+				strcpy(appData->appid_old, apps[i].appid_old);
+			}
 			break;
 		}
 	}
@@ -508,7 +540,23 @@ char* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 	free(values);
 	free(title);
 
-	return appid;
+	return appData;
+}
+
+// Create a symlink for a file that has the old nonsteam appid format
+void createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
+	char linkPath[MAX_PATH];
+	char targetPath[MAX_PATH];
+
+	strcpy(linkPath, steamDestDir);
+	strcat(linkPath, appData->appid_old);
+	strcat(linkPath, ".png");
+
+	strcpy(targetPath, steamDestDir);
+	strcat(targetPath, appData->appid);
+	strcat(targetPath, ".png");
+
+	int result = symlink(targetPath, linkPath);
 }
 
 // Add an icon to IUP windows
@@ -576,9 +624,10 @@ int main(int argc, char** argv)
 		char* orientation = apiValues[1];
 		char* assetUrl = apiValues[2];
 
+		struct nonSteamApp* nonSteamAppData = NULL;
+
 		// If the game is a non-steam app, select an imported app
 		if (startsWith(app_id, "nonsteam-")) {
-
 			if (strcmp(type, "icon") == 0) {
 				return 92;
 			}
@@ -591,7 +640,9 @@ int main(int argc, char** argv)
 			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
 
 			// Show selection screen and return the appid
-			app_id = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+
+			app_id = nonSteamAppData->appid;
 		}
 
 		// Get Steam base dir
@@ -599,11 +650,19 @@ int main(int argc, char** argv)
 		if (steamDestDir == NULL) {
 			return 83;
 		}
-
 		// Download asset file
 		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir);
 		if (outfilename == NULL) {
 			return 84;
+		}
+
+		// If the asset is a horizontal grid, create a symlink (for back. compat.)
+		if (nonSteamAppData && strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+			createOldIdSymlink(nonSteamAppData, steamDestDir);
+		}
+
+		if (nonSteamAppData) {
+			free(nonSteamAppData);
 		}
 	}
 
