@@ -4,9 +4,11 @@ runtime-version: '21.08'
 sdk: org.freedesktop.Sdk
 command: SGDBoop
 finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
   - --share=network
   - --filesystem=~/.steam/steam/config/loginusers.vdf:ro # Used for reading SteamID
-  - --filesystem=~/.steam/steam/userdata:rw # For saving custom images except icons
+  - --filesystem=~/.steam/steam/userdata:rw # For saving custom images except icons, and reading shortcuts.vdf for Non-Steam games
   - --filesystem=~/.steam/steam/appcache/librarycache:rw # For saving icons
   # Same thing as above but for Flatpak Steam
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/config/loginusers.vdf:ro

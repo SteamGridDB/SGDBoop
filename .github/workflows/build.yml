@@ -45,6 +45,7 @@ jobs:
           x64/Release/SGDBoop.exe
           x64/Release/libcurl.dll
           x64/Release/zlib1.dll
+          x64/Release/iup.dll
 
     - uses: actions/upload-artifact@v3
       with:
@@ -60,10 +61,15 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install libcurl
-      run: sudo apt-get install -y libcurl4-openssl-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev
 
     - name: Build
-      run: make
+      run: sudo make
+
+    - name: Copy libiup.so to linux-release/
+      run: cp lib/linux/libiup.so linux-release/
       
     - uses: actions/upload-artifact@v3
       with:

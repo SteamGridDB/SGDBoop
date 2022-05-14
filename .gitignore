@@ -416,14 +416,10 @@ FodyWeavers.xsd
 *.pch
 
 # Libraries
-*.lib
-*.a
 *.la
 *.lo
 
 # Shared objects (inc. Windows DLLs)
-*.dll
-*.so
 *.so.*
 *.dylib
 
@@ -454,3 +450,4 @@ dkms.conf
 vcpkg_installed/
 
 linux-release/SGDBoop
+linux-release/libiup.so

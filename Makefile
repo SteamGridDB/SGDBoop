@@ -2,12 +2,18 @@ ifeq ($(PREFIX),)
     PREFIX := /usr/local
 endif
 
+USER_LIB_PATH := /usr/lib
+ifdef FLATPAK_ID
+    USER_LIB_PATH := /app/lib
+endif
+
 .PHONY: all
 all: build
 
 .PHONY: build
 build:
-	gcc sgdboop.c curl-helper.c string-helpers.c -lcurl -o linux-release/SGDBoop
+	install -Dm644 lib/linux/libiup.so -t $(USER_LIB_PATH)
+	gcc sgdboop.c curl-helper.c string-helpers.c crc.c -liup -lcurl -o linux-release/SGDBoop $(LDFLAGS)
 
 ifdef FLATPAK_ID
 .PHONY: install
