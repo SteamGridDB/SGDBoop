@@ -280,7 +280,6 @@ char* getSteamBaseDir() {
 }
 
 // Find the most recently logged-in user
-
 char* getMostRecentUser(char* steamBaseDir) {
 
 	char* steamid = malloc(512);
@@ -461,7 +460,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		if (old_id_required) {
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
-			sprintf(apps[_nonSteamAppsCount].appid_old, "%llu", (unsigned long long)appid_old);
+			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRId64, appid_old);
 		}
 		else {
 			strcpy(apps[_nonSteamAppsCount].appid_old, "none");
