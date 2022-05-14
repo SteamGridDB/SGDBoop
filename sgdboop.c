@@ -394,7 +394,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
 	unsigned char* parsingChar = fileContent;
 	unsigned char parsingAppid[512];
-	uint32_t intBytes[4];
+	uint64_t intBytes[4];
 	crcInit();
 
 	int old_id_required = 0;

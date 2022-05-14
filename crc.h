@@ -13,6 +13,7 @@
  * expressed or implied by its publication or distribution.
  **********************************************************************/
 
+#include <stdint.h>
 #ifndef _crc_h
 #define _crc_h
 
@@ -52,7 +53,7 @@ typedef unsigned short  crc;
 
 #elif defined(CRC32)
 
-typedef unsigned long  crc;
+typedef uint32_t  crc;
 
 #define CRC_NAME			"CRC-32"
 #define POLYNOMIAL			0x04C11DB7
