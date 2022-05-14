@@ -460,7 +460,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		if (old_id_required) {
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
-			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRId64, appid_old);
+			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
 		}
 		else {
 			strcpy(apps[_nonSteamAppsCount].appid_old, "none");
