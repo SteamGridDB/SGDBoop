@@ -42,7 +42,7 @@
       A tool that automatically applies assets from SteamGridDB directly to your Steam library, removing the need to download and set them manually.
     </p>
     <p>
-      Note: SGDBoop is intended to be executed via <code>sgdb://</code> links on SteamGridDB. Continue setup from "Step 2" here: https://www.steamgriddb.com/boop
+      Note: SGDBoop is intended to be executed via sgdb:// links on SteamGridDB. Continue setup from "Step 2" here: https://www.steamgriddb.com/boop
     </p>
   </description>
   <branding>
