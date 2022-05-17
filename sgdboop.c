@@ -101,7 +101,7 @@ char** callAPI(char* grid_type, char* grid_id, char* mode)
 }
 
 // Download an asset file
-char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir)
+char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir, struct nonSteamApp* nonSteamAppData)
 {
 	// Try creating folder
 	if (access(destinationDir, 0) != 0) {
@@ -133,7 +133,17 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	}
 	else if (strcmp(type, "icon") == 0) {
 		// Icon
-		strcat(outfilename, "_icon.jpg");
+		if (nonSteamAppData == NULL) {
+			// Inject Steam's cache
+			strcat(outfilename, "_icon.jpg");
+		}
+		else {
+			// Add new icon to grid folder using its original extension
+			strcat(outfilename, "_icon.");
+			char* extension = strstr(url, ".com/") + 5;
+			extension = strstr(extension, ".") + 1;
+			strcat(outfilename, extension);
+		}
 	}
 
 	curl = curl_easy_init();
@@ -322,19 +332,19 @@ char* getMostRecentUser(char* steamBaseDir) {
 }
 
 // Get Steam's destination directory based on artwork type
-char* getSteamDestinationDir(char* type) {
+char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
 
 	char* steamBaseDir = getSteamBaseDir();
 	if (steamBaseDir == NULL) {
 		return NULL;
 	}
 
-	if (strcmp(type, "icon") == 0) {
-		// If it's an icon
+	if (strcmp(type, "icon") == 0 && nonSteamAppData == NULL) {
+		// If it's a Steam app icon
 		strcat(steamBaseDir, "/appcache/librarycache/");
 	}
 	else {
-		// If it's not an icon, read the loginusers.vdf to find the most recent user
+		// If it's not a Steam app icon, read the loginusers.vdf to find the most recent user
 		char* steamid = getMostRecentUser(steamBaseDir);
 		strcat(steamBaseDir, "/userdata/");
 		strcat(steamBaseDir, steamid);
@@ -409,14 +419,14 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		uint64_t appid = 0;
 
 		// Find app name
-		unsigned char* nameStartChar = strstr_i(parsingChar, "appname") + 8;
+		unsigned char* nameStartChar = strstr_i(parsingChar, "\001appname") + 9;
 		unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
 
 		// Find exe path
-		unsigned char* exeStartChar = strstr_i(parsingChar, "exe") + 4;
+		unsigned char* exeStartChar = strstr_i(parsingChar, "\001exe") + 5;
 		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
-		unsigned char* appidPtr = strstr_i(parsingChar, "appid");
+		unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
 		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
 		while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
 			appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
@@ -424,7 +434,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		// If appid was found in this app block
 		if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
-			unsigned char* hexBytes = appidPtr + 6;
+			unsigned char* hexBytes = appidPtr + 7;
 			intBytes[0] = *(hexBytes + 3);
 			intBytes[1] = *(hexBytes + 2);
 			intBytes[2] = *(hexBytes + 1);
@@ -529,7 +539,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 		free(title);
 		exit(0);
 	}
-	
+
 	// Find match
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
 		if (strcmp(apps[i].name, values[retval]) == 0) {
@@ -564,6 +574,121 @@ void createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 	strcat(targetPath, ".png");
 
 	int result = symlink(targetPath, linkPath);
+}
+
+// Update shortcuts.vdf with the new icon value
+void updateVdf(struct nonSteamApp* appData, char* filePath) {
+
+	char* shortcutsVdfPath = getSteamBaseDir();
+	char* steamid = getMostRecentUser(shortcutsVdfPath);
+
+	// Get the shortcuts.vdf file
+	strcat(shortcutsVdfPath, "/userdata/");
+	strcat(shortcutsVdfPath, steamid);
+	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
+
+	// Parse the file
+	FILE* fp;
+	unsigned char buf[1] = { 0 };
+	size_t bytes = 0;
+	size_t read = sizeof buf;
+	fp = fopen(shortcutsVdfPath, "rb");
+	if (fp == NULL) {
+		free(shortcutsVdfPath);
+		exit(93);
+	}
+	fseek(fp, 0L, SEEK_END);
+	size_t filesize = ftell(fp) + 2;
+	fseek(fp, 0, SEEK_SET);
+
+	unsigned char* fileContent = malloc(filesize + 1);
+	unsigned char* new_fileContent = malloc(filesize + 513);
+	unsigned int currentFileByte = 0;
+
+	// Load the vdf in memory and fix string-related issues
+	while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+		if (buf[0] == 0x00) {
+			fileContent[currentFileByte] = 0x03;
+		}
+		else {
+			fileContent[currentFileByte] = buf[0];
+		}
+		currentFileByte++;
+	}
+	fileContent[filesize - 2] = '\x08';
+	fileContent[filesize - 1] = '\x03';
+	fileContent[filesize] = '\0';
+	fclose(fp);
+
+	unsigned char* appBlockStart = fileContent;
+	unsigned char* appBlockEndPtr = fileContent;
+	unsigned char* iconStartChar = 0;
+	unsigned char* iconEndChar = 0;
+	char iconContent[512];
+	strcpy(iconContent, "\001icon\003");
+	strcat(iconContent, "\"");
+	strcat(iconContent, filePath);
+	strcat(iconContent, "\"\003");
+
+	// Find the app's block
+	for (int i = 0; i < appData->index + 1; i++) {
+		appBlockStart = appBlockEndPtr;
+		appBlockEndPtr = strstr(appBlockStart, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+		while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
+			appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
+		}
+	}
+
+	if (appBlockStart > 0) {
+
+		// Find icon key
+		iconStartChar = strstr_i(appBlockStart, "\001icon");
+		iconEndChar = strstr(iconStartChar, "\x03") + 1;
+		iconEndChar = strstr(iconEndChar, "\x03");
+
+		// Find exe key
+		unsigned char* exeStartChar = strstr_i(appBlockStart, "\001exe") + 5;
+		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
+
+		if (iconStartChar == 0 || iconStartChar > appBlockEndPtr) {
+			// Didn't find icon block
+			iconStartChar = exeEndChar + 1;
+			iconEndChar = iconStartChar;
+		}
+
+		*iconStartChar = '\0';
+
+		// Set the new file contents
+		strcpy(new_fileContent, fileContent);
+		strcat(new_fileContent, iconContent);
+		strcat(new_fileContent, iconEndChar + 1);
+
+		// Write the file back
+		FILE* fp_w = fopen(shortcutsVdfPath, "wb");
+		if (fp_w == NULL) {
+			free(fileContent);
+			free(new_fileContent);
+			free(shortcutsVdfPath);
+			exit(94);
+		}
+
+		int newFileSize = strlen(new_fileContent) - 2;
+
+		for (int i = 0; i < newFileSize; i++) {
+			// Revert 0x03 to 0x00
+			if (new_fileContent[i] == 0x03) {
+				new_fileContent[i] = 0x00;
+			}
+
+			// Write byte to file
+			fwrite(&new_fileContent[i], sizeof(char), 1, fp_w);
+		}
+
+		fclose(fp_w);
+
+		free(fileContent);
+		free(new_fileContent);
+	}
 }
 
 // Add an icon to IUP windows
@@ -635,9 +760,6 @@ int main(int argc, char** argv)
 
 		// If the game is a non-steam app, select an imported app
 		if (startsWith(app_id, "nonsteam-")) {
-			if (strcmp(type, "icon") == 0) {
-				return 92;
-			}
 
 			// Enable IUP GUI
 			IupOpen(&argc, &argv);
@@ -653,22 +775,30 @@ int main(int argc, char** argv)
 		}
 
 		// Get Steam base dir
-		char* steamDestDir = getSteamDestinationDir(type);
+		char* steamDestDir = getSteamDestinationDir(type, nonSteamAppData);
 		if (steamDestDir == NULL) {
 			return 83;
 		}
+
 		// Download asset file
-		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir);
+		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir, nonSteamAppData);
 		if (outfilename == NULL) {
 			return 84;
 		}
 
-		// If the asset is a horizontal grid, create a symlink (for back. compat.)
-		if (nonSteamAppData && strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-			createOldIdSymlink(nonSteamAppData, steamDestDir);
-		}
-
+		// Non-Steam specific actions
 		if (nonSteamAppData) {
+
+			// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
+			if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+				createOldIdSymlink(nonSteamAppData, steamDestDir);
+			}
+
+			// If the asset is a non-Steam icon, add the 
+			else if (strcmp(type, "icon") == 0) {
+				updateVdf(nonSteamAppData, outfilename);
+			}
+
 			free(nonSteamAppData);
 		}
 	}
