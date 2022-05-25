@@ -117,19 +117,19 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	strcat(outfilename, app_id);
 	if (strcmp(type, "hero") == 0) {
 		// Hero
-		strcat(outfilename, "_hero.png");
+		strcat(outfilename, "_hero.jpg");
 	}
 	else if (strcmp(type, "logo") == 0) {
 		// Logo
-		strcat(outfilename, "_logo.png");
+		strcat(outfilename, "_logo.jpg");
 	}
 	else if (strcmp(type, "grid") == 0 && strcmp(orientation, "p") == 0) {
 		// Vertical grid
-		strcat(outfilename, "p.png");
+		strcat(outfilename, "p.jpg");
 	}
 	else if (strcmp(type, "grid") == 0) {
 		// Horizontal grid
-		strcat(outfilename, ".png");
+		strcat(outfilename, ".jpg");
 	}
 	else if (strcmp(type, "icon") == 0) {
 		// Icon
@@ -557,11 +557,11 @@ void createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 
 	strcpy(linkPath, steamDestDir);
 	strcat(linkPath, appData->appid_old);
-	strcat(linkPath, ".png");
+	strcat(linkPath, ".jpg");
 
 	strcpy(targetPath, steamDestDir);
 	strcat(targetPath, appData->appid);
-	strcat(targetPath, ".png");
+	strcat(targetPath, ".jpg");
 
 	int result = symlink(targetPath, linkPath);
 }
