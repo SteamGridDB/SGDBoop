@@ -45,6 +45,9 @@ int _nonSteamAppsCount = 0;
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id, char* mode)
 {
+	printf("callAPI: grid_type: %s. Ends with \\0? %i\n", grid_type, grid_type[strlen(grid_type)]=='\0');
+	printf("callAPI: grid_id: %s\n. Ends with \\0? %i\n", grid_id, grid_id[strlen(grid_id)]=='\0');
+	printf("callAPI: mode: %s\n. Ends with \\0? %i\n", mode, grid_type[strlen(grid_type)]=='\0');
 	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
 	char apiVersionHeader[20] = "X-BOOP-API-VER: ";
 	strcat(apiVersionHeader, API_VERSION);
@@ -601,32 +604,37 @@ int main(int argc, char** argv)
 
 		// If sgdb:// arguments were passed, run program normally
 
+		char* source = "";
+		char* type = "";
+
 		// If the arguments aren't of the SGDB URI, return with an error
-		if (!startsWith(argv[1], "sgdb://")) {
+		if (startsWith(argv[1], "sgdb://boop/")) {
+			source = "boop";
+			type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
+		}
+		else if (startsWith(argv[1], "sgdb://steam/")) {
+			source = "steam";
+			type = strstr(argv[1], "sgdb://steam/") + strlen("sgdb://steam/");
+		}
+		else {
 			return 81;
 		}
 
 		// Get the params from the string
-		char* tokenized_uri = malloc(sizeof(argv[1]));
-		strcpy(tokenized_uri, argv[1]);					// don't modify the original argument
+		//char* type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
+		char* grid_id = strstr(type, "/");
+		grid_id[0] = '\0';         // End app_id string
+		grid_id += 1;              // Move 1 place
 
-		char delimiter[] = "/";							// split by "/"
-		strtok(tokenized_uri, delimiter);				// dont store "sgdb:"
-		char* source = strtok(NULL, delimiter);
-		char* type = strtok(NULL, delimiter);
-		char* grid_id = strtok(NULL, delimiter);
-		char* mode = strtok(NULL, delimiter);
-		
-		if (mode <= 0) {
+		char* mode = strstr(grid_id, "/"); // If there's a method string, use it
+		if (mode > 0) {
+			*mode = '\0';
+			mode++;
+		}
+		else {
 			mode = malloc(sizeof("default") + 1);
 			strcpy(mode, "default");
 		}
-
-		printf("URL values:\n");
-		printf("\tsource: %s\n", source);
-		printf("\ttype: %s\n", type);
-		printf("\tgrid_id: %s\n", grid_id);
-		printf("\tmode: %s\n", mode);
 
 		// Create variables
 		char* app_id;
@@ -664,9 +672,14 @@ int main(int argc, char** argv)
 			} else {
 				return 92; // non supported type
 			}
-			app_id = grid_id;
-			orientation = "0";
 			assetUrl = buffer;
+
+			char id_buffer[100];
+			snprintf (id_buffer, 100, "nonsteam-%s", grid_id);
+			app_id = id_buffer;
+
+			orientation = "0";
+			
 			printf("steam values:\n");
 			printf("\tapp_id: %s\n", app_id);
 			printf("\torientation: %s\n", orientation);
@@ -690,15 +703,21 @@ int main(int argc, char** argv)
 				return 92;
 			}
 
+			printf("opening GUI\n");
+
 			// Enable IUP GUI
 			IupOpen(&argc, &argv);
 			loadIupIcon();
-
+			printf("GUI enabled.\n");
+			
 			// Get non-steam apps
 			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
+			printf("non steam apps returned.\n");
+			
 
 			// Show selection screen and return the appid
 			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+			printf("non steam app selected.\n");
 
 			app_id = nonSteamAppData->appid;
 		}
