@@ -684,11 +684,11 @@ int main(int argc, char** argv)
 
 				// hero
 				snprintf (buffer, 400, furl, grid_id, "library_hero.jpg", epoch_time );
-				addAsset(buffer, "grid", "l"); // horizontal
+				addAsset(buffer, "hero", "l"); // horizontal
 
 				// logo
 				snprintf (buffer, 400, furl, grid_id, "logo.png", epoch_time );
-				addAsset(buffer, "grid", "l"); // horizontal
+				addAsset(buffer, "logo", "l"); // horizontal
 			} else {
 				char* orientation = "l";
 				if(strcmp(type,"grid")==0) {
