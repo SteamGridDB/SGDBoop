@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <curl/curl.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -40,14 +41,33 @@ typedef struct nonSteamApp
 	char appid_old[128];
 } nonSteamApp;
 
+// Multiple Assets!
+#define MAX_ASSETS 5
+struct assetData
+{
+	char assetUrl[400];
+	char type[100];
+	char orientation[2];
+};
+struct assetData assets[MAX_ASSETS];
+int n_assets = 0;
+
+int addAsset(char* assetUrl, char* type, char* orientation) {
+	if (n_assets>=MAX_ASSETS) {
+		return -1;
+	}
+	strcpy(assets[n_assets].orientation, orientation);
+	strcpy(assets[n_assets].assetUrl, assetUrl);
+	strcpy(assets[n_assets].type, type);
+	n_assets++;
+	return 1;
+}
+
 int _nonSteamAppsCount = 0;
 
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id, char* mode)
 {
-	printf("callAPI: grid_type: %s. Ends with \\0? %i\n", grid_type, grid_type[strlen(grid_type)]=='\0');
-	printf("callAPI: grid_id: %s\n. Ends with \\0? %i\n", grid_id, grid_id[strlen(grid_id)]=='\0');
-	printf("callAPI: mode: %s\n. Ends with \\0? %i\n", mode, grid_type[strlen(grid_type)]=='\0');
 	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
 	char apiVersionHeader[20] = "X-BOOP-API-VER: ";
 	strcat(apiVersionHeader, API_VERSION);
@@ -604,24 +624,16 @@ int main(int argc, char** argv)
 
 		// If sgdb:// arguments were passed, run program normally
 
-		char* source = "";
-		char* type = "";
-
 		// If the arguments aren't of the SGDB URI, return with an error
-		if (startsWith(argv[1], "sgdb://boop/")) {
-			source = "boop";
-			type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
-		}
-		else if (startsWith(argv[1], "sgdb://steam/")) {
-			source = "steam";
-			type = strstr(argv[1], "sgdb://steam/") + strlen("sgdb://steam/");
-		}
-		else {
+		if (!startsWith(argv[1], "sgdb://")) {
 			return 81;
 		}
 
 		// Get the params from the string
-		//char* type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
+		char* source = strstr(argv[1], "sgdb://") + strlen("sgdb://");
+		char* type = strstr(source, "/");
+		type[0] = '\0';         // End source string
+		type += 1;              // Move 1 place
 		char* grid_id = strstr(type, "/");
 		grid_id[0] = '\0';         // End app_id string
 		grid_id += 1;              // Move 1 place
@@ -636,64 +648,80 @@ int main(int argc, char** argv)
 			strcpy(mode, "default");
 		}
 
-		// Create variables
+		// Create app_id var
 		char* app_id;
-		char* orientation;
-		char* assetUrl;
 
 		// Get asset URL from SteamGridDB
 		if (strcmp(source, "boop")==0) {
 			printf("Source is SteamGridDB!\n");
 
     	    char** apiValues = callAPI(type, grid_id, mode);
-			printf("API Called!\n");
 			if (apiValues == NULL) {
 				return 82;
 			}
-			printf("boop values:\n");
 			app_id = apiValues[0];
-			printf("\tapp_id: %s\n", app_id);
-			orientation = apiValues[1];
-			printf("\torientation: %s\n", orientation);
-			assetUrl = apiValues[2];
-			printf("\tassetUrl: %s\n", assetUrl);			
+			addAsset(apiValues[2], type, apiValues[1]);
 		}
 		else if(strcmp(source, "steam")==0) {		
-			// grid: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/library_600x900_2x.jpg?t=<epoch>
-			// hero: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/library_hero.jpg?t=<epoch>
-			// logo: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/logo.png?t=<epoch>
+			printf("Source is Steam!\n");
+
 			char buffer[400];
-			if(strcmp(type,"grid")==0) {
-				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "library_600x900_2x.jpg", 1626266072 );
-			} else if (strcmp(type, "hero")==0) {
-				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "library_hero.jpg", 1626266072 );
-			} else if (strcmp(type, "logo")==0) {
-				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "logo.png", 1626266072 );
-			} else {
-				return 92; // non supported type
-			}
-			assetUrl = buffer;
+			char furl[] = "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%ld";
+			time_t epoch_time = time(NULL);
 
 			char id_buffer[100];
-			snprintf (id_buffer, 100, "nonsteam-%s", grid_id);
+			snprintf (id_buffer, 100, "nonsteam-%s", "NO NAME"); // TODO: Get name from steam (maybe by URI?)
 			app_id = id_buffer;
 
-			orientation = "0";
-			
-			printf("steam values:\n");
-			printf("\tapp_id: %s\n", app_id);
-			printf("\torientation: %s\n", orientation);
-			printf("\tassetUrl: %s\n", assetUrl);
+			if (strcmp(type,"all")==0) {
+				// vertical grid
+				snprintf (buffer, 400, furl, grid_id, "library_600x900_2x.jpg", epoch_time );
+				addAsset(buffer, "grid", "p"); // vertical
+
+				// horizontal grid
+				snprintf (buffer, 400, furl, grid_id, "header.jpg", epoch_time );
+				addAsset(buffer, "grid", "l"); // horizontal
+
+				// hero
+				snprintf (buffer, 400, furl, grid_id, "library_hero.jpg", epoch_time );
+				addAsset(buffer, "grid", "l"); // horizontal
+
+				// logo
+				snprintf (buffer, 400, furl, grid_id, "logo.png", epoch_time );
+				addAsset(buffer, "grid", "l"); // horizontal
+			} else {
+				char* orientation = "l";
+				if(strcmp(type,"grid")==0) {
+					snprintf (buffer, 400, furl, grid_id, "library_600x900_2x.jpg", epoch_time );
+					orientation = "p";
+				} else if (strcmp(type, "hero")==0) {
+					snprintf (buffer, 400, furl, grid_id, "library_hero.jpg", epoch_time );
+				} else if (strcmp(type, "logo")==0) {
+					snprintf (buffer, 400, furl, grid_id, "logo.png", epoch_time );
+				} else {
+					return 92; // non supported type
+				}
+
+				addAsset(buffer, type, orientation);
+			}
 		}
 		else {
-			printf("No compatible source detected in URL!\n");
-			return 70;
+			printf("No compatible source detected in URI!\n");
+			return -1;
 		}
 
-		printf("final values:\n");
-		printf("\tapp_id: %s\n", app_id);
-		printf("\torientation: %s\n", orientation);
-		printf("\tassetUrl: %s\n", assetUrl);
+		if (n_assets <= 0 || n_assets > MAX_ASSETS) {
+			printf("No assets detected to download!\n");
+			return -1;
+		}
+
+		char compat_orientation[] = "p";
+		for (int i = 0; i < n_assets; i++) {
+			if (strcmp(assets[i].orientation,"l")==0) {
+				strcpy(compat_orientation,"l");
+				break;
+			}
+		}
 
 		struct nonSteamApp* nonSteamAppData = NULL;
 
@@ -703,21 +731,16 @@ int main(int argc, char** argv)
 				return 92;
 			}
 
-			printf("opening GUI\n");
-
 			// Enable IUP GUI
 			IupOpen(&argc, &argv);
 			loadIupIcon();
 			printf("GUI enabled.\n");
 			
 			// Get non-steam apps
-			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
-			printf("non steam apps returned.\n");
-			
+			struct nonSteamApp* apps = getNonSteamApps(type, compat_orientation);			
 
 			// Show selection screen and return the appid
 			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
-			printf("non steam app selected.\n");
 
 			app_id = nonSteamAppData->appid;
 		}
@@ -727,17 +750,20 @@ int main(int argc, char** argv)
 		if (steamDestDir == NULL) {
 			return 83;
 		}
-		// Download asset file
-		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir);
-		if (outfilename == NULL) {
-			return 84;
-		}
 
-		// If the asset is a horizontal grid, create a symlink (for back. compat.)
-		if (nonSteamAppData && strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-			createOldIdSymlink(nonSteamAppData, steamDestDir);
-		}
+		for (int i = 0; i < n_assets; i++) {
+			// Download asset file
+			char* outfilename = downloadAssetFile(app_id, assets[i].assetUrl, assets[i].type, assets[i].orientation, steamDestDir);
+			if (outfilename == NULL) {
+				return 84;
+			}
 
+			// If the asset is a horizontal grid, create a symlink (for back. compat.)
+			if (nonSteamAppData && strcmp(assets[i].type, "grid") == 0 && strcmp(assets[i].orientation, "l") == 0) {
+				createOldIdSymlink(nonSteamAppData, steamDestDir);
+			}
+		}
+		
 		if (nonSteamAppData) {
 			free(nonSteamAppData);
 		}
