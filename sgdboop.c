@@ -602,34 +602,85 @@ int main(int argc, char** argv)
 		// If sgdb:// arguments were passed, run program normally
 
 		// If the arguments aren't of the SGDB URI, return with an error
-		if (!startsWith(argv[1], "sgdb://boop")) {
+		if (!startsWith(argv[1], "sgdb://")) {
 			return 81;
 		}
 
 		// Get the params from the string
-		char* type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
-		char* grid_id = strstr(type, "/");
-		grid_id[0] = '\0';         // End app_id string
-		grid_id += 1;              // Move 1 place
+		char* tokenized_uri = malloc(sizeof(argv[1]));
+		strcpy(tokenized_uri, argv[1]);					// don't modify the original argument
 
-		char* mode = strstr(grid_id, "/"); // If there's a method string, use it
-		if (mode > 0) {
-			*mode = '\0';
-			mode++;
-		}
-		else {
+		char delimiter[] = "/";							// split by "/"
+		strtok(tokenized_uri, delimiter);				// dont store "sgdb:"
+		char* source = strtok(NULL, delimiter);
+		char* type = strtok(NULL, delimiter);
+		char* grid_id = strtok(NULL, delimiter);
+		char* mode = strtok(NULL, delimiter);
+		
+		if (mode <= 0) {
 			mode = malloc(sizeof("default") + 1);
 			strcpy(mode, "default");
 		}
 
-		// Get asset URL
-		char** apiValues = callAPI(type, grid_id, mode);
-		if (apiValues == NULL) {
-			return 82;
+		printf("URL values:\n");
+		printf("\tsource: %s\n", source);
+		printf("\ttype: %s\n", type);
+		printf("\tgrid_id: %s\n", grid_id);
+		printf("\tmode: %s\n", mode);
+
+		// Create variables
+		char* app_id;
+		char* orientation;
+		char* assetUrl;
+
+		// Get asset URL from SteamGridDB
+		if (strcmp(source, "boop")==0) {
+			printf("Source is SteamGridDB!\n");
+
+    	    char** apiValues = callAPI(type, grid_id, mode);
+			printf("API Called!\n");
+			if (apiValues == NULL) {
+				return 82;
+			}
+			printf("boop values:\n");
+			app_id = apiValues[0];
+			printf("\tapp_id: %s\n", app_id);
+			orientation = apiValues[1];
+			printf("\torientation: %s\n", orientation);
+			assetUrl = apiValues[2];
+			printf("\tassetUrl: %s\n", assetUrl);			
 		}
-		char* app_id = apiValues[0];
-		char* orientation = apiValues[1];
-		char* assetUrl = apiValues[2];
+		else if(strcmp(source, "steam")==0) {		
+			// grid: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/library_600x900_2x.jpg?t=<epoch>
+			// hero: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/library_hero.jpg?t=<epoch>
+			// logo: https://cdn.cloudflare.steamstatic.com/steam/apps/<id>/logo.png?t=<epoch>
+			char buffer[400];
+			if(strcmp(type,"grid")==0) {
+				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "library_600x900_2x.jpg", 1626266072 );
+			} else if (strcmp(type, "hero")==0) {
+				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "library_hero.jpg", 1626266072 );
+			} else if (strcmp(type, "logo")==0) {
+				snprintf (buffer, 400, "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s?t=%i", grid_id, "logo.png", 1626266072 );
+			} else {
+				return 92; // non supported type
+			}
+			app_id = grid_id;
+			orientation = "0";
+			assetUrl = buffer;
+			printf("steam values:\n");
+			printf("\tapp_id: %s\n", app_id);
+			printf("\torientation: %s\n", orientation);
+			printf("\tassetUrl: %s\n", assetUrl);
+		}
+		else {
+			printf("No compatible source detected in URL!\n");
+			return 70;
+		}
+
+		printf("final values:\n");
+		printf("\tapp_id: %s\n", app_id);
+		printf("\torientation: %s\n", orientation);
+		printf("\tassetUrl: %s\n", assetUrl);
 
 		struct nonSteamApp* nonSteamAppData = NULL;
 
