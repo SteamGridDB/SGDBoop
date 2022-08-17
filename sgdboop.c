@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <time.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
 #include "include/iup.h"
@@ -41,6 +42,23 @@ typedef struct nonSteamApp
 } nonSteamApp;
 
 int _nonSteamAppsCount = 0;
+
+void exitWithError(char* error, int errorCode)
+{
+	time_t now = time(0);
+	time_t rawtime;
+	struct tm* timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	FILE* logFile = fopen("SGDBoop_error_log.txt", "a");
+	if (logFile == NULL) {
+		logFile = fopen("SGDBoop_error_log.txt", "w");
+	}
+
+	fprintf(logFile, "%s %s\n\n", asctime(timeinfo), error);
+	exit(errorCode);
+}
 
 // Call the BOOP API
 char** callAPI(char* grid_type, char* grid_id, char* mode)
@@ -305,7 +323,7 @@ char* getMostRecentUser(char* steamBaseDir) {
 	if (fp == NULL) {
 		free(steamid);
 		free(steamConfigFile);
-		exit(95);
+		exitWithError("Couldn't find logged in user", 95);
 	}
 
 	while ((read = readLine(&line, &len, fp)) != -1) {
@@ -374,7 +392,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	if (fp == NULL) {
 		free(shortcutsVdfPath);
 		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
-		exit(90);
+		exitWithError("Could not the non-Steam apps file.", 90);
 	}
 	fseek(fp, 0L, SEEK_END);
 	size_t filesize = ftell(fp) + 2;
@@ -492,7 +510,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
 		free(fileContent);
 		free(apps);
-		exit(91);
+		exitWithError("Could not find any non-Steam apps in the according file.", 91);
 	}
 
 	free(fileContent);
@@ -532,7 +550,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 
 	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 12, 14, NULL);
 
-	// Exit when use clicks cancel
+	// Exit when user clicks cancel
 	if (retval < 0) {
 		free(apps);
 		free(values);
@@ -595,7 +613,7 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	fp = fopen(shortcutsVdfPath, "rb");
 	if (fp == NULL) {
 		free(shortcutsVdfPath);
-		exit(93);
+		exitWithError("Shortcuts vdf could not be found.", 93);
 	}
 	fseek(fp, 0L, SEEK_END);
 	size_t filesize = ftell(fp) + 2;
@@ -669,7 +687,7 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 			free(fileContent);
 			free(new_fileContent);
 			free(shortcutsVdfPath);
-			exit(94);
+			exitWithError("Could not write to shortcuts vdf file.", 94);
 		}
 
 		int newFileSize = strlen(new_fileContent) - 2;
@@ -707,7 +725,7 @@ int main(int argc, char** argv)
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
-			return 80;
+			exitWithError("Could not create URI protocol.", 80);
 		}
 	}
 	else {
@@ -719,7 +737,7 @@ int main(int argc, char** argv)
 		// If argument is unregister, unregister and exit
 		if (strcmp(argv[1], "unregister") == 0) {
 			if (deleteURIprotocol() == 1) {
-				return 85;
+				exitWithError("Could not unregister the URI protocol.", 85);
 			}
 			return 0;
 		}
@@ -728,7 +746,7 @@ int main(int argc, char** argv)
 
 		// If the arguments aren't of the SGDB URI, return with an error
 		if (!startsWith(argv[1], "sgdb://boop")) {
-			return 81;
+			exitWithError("Invalid URI schema.", 81);
 		}
 
 		// Get the params from the string
@@ -750,7 +768,7 @@ int main(int argc, char** argv)
 		// Get asset URL
 		char** apiValues = callAPI(type, grid_id, mode);
 		if (apiValues == NULL) {
-			return 82;
+			exitWithError("API didn't return an appropriate response.", 82);
 		}
 		char* app_id = apiValues[0];
 		char* orientation = apiValues[1];
@@ -777,13 +795,13 @@ int main(int argc, char** argv)
 		// Get Steam base dir
 		char* steamDestDir = getSteamDestinationDir(type, nonSteamAppData);
 		if (steamDestDir == NULL) {
-			return 83;
+			exitWithError("Could not locate Steam destination directory.", 83);
 		}
 
 		// Download asset file
 		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir, nonSteamAppData);
 		if (outfilename == NULL) {
-			return 84;
+			exitWithError("Could not download asset file.", 84);
 		}
 
 		// Non-Steam specific actions
