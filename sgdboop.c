@@ -445,11 +445,11 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
 
-
 			// If line contains the regvalue's key, capture the value
 			unsigned char* extractedValue = strstr(line_reg, regValue);
 
 			if (extractedValue > 0) {
+				extractedValue += strlen(regValue) + 1;
 				extractedValue = strstr(extractedValue, "\"");
 				unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
 				*extractedValueEnd = '\0';
