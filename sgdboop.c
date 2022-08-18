@@ -212,7 +212,7 @@ int createURIprotocol() {
 
 		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
-			IupMessage("SGDBoop Error", "Please run this program as Administrator!");
+			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
 			free(regeditCommand);
 			return 1;
 		}
@@ -226,13 +226,13 @@ int createURIprotocol() {
 
 		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
-		IupMessage("SGDBoop", "Program registered successfully!");
+		IupMessage("SGDBoop", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		free(regeditCommand);
 		return 0;
 	}
 	else {
 		// Do nothing on linux
-		printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
+		IupMessage("SGDBoop Information", "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		return 1;
 	}
 }
@@ -437,10 +437,10 @@ struct nonSteamApp* getSourceMods(const char* type)
 		size_t read_reg;
 
 		fp_reg = fopen("~/.steam/steam/registry.vdf", "r");
-
-		// If the file doesn't exist, move on to the next file
+		
+		// If the file doesn't exist, skip this function
 		if (fp_reg == NULL) {
-			exitWithError("Could not locate registry.vdf", 96);
+			return NULL;
 		}
 
 		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
@@ -460,7 +460,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 			}
 		}
 	}
-
+	
 	if (!foundValue) {
 		free(sourceModPath);
 		return NULL;
@@ -627,7 +627,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
 	crcInit();
 
 	// Get the shortcuts.vdf file
@@ -750,7 +750,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			parsingChar = appBlockEndPtr + 2;
 		}
 	}
-
+	
 	// Add source (and goldsource) mods
 	struct nonSteamApp* sourceMods = getSourceMods("source");
 	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
@@ -770,6 +770,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		_nonSteamAppsCount++;
 	}
+	
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
@@ -988,12 +989,11 @@ int main(int argc, char** argv)
 	}
 
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
+		// Enable IUP GUI
+		IupOpen(&argc, &argv);
+		loadIupIcon();
+
 		// Create the sgdb URI protocol
-		if (OS_Windows) {
-			// Enable IUP GUI
-			IupOpen(&argc, &argv);
-			loadIupIcon();
-		}
 		if (createURIprotocol() == 1) {
 			exitWithError("Could not create URI protocol.", 80);
 		}
@@ -1051,7 +1051,6 @@ int main(int argc, char** argv)
 
 			// Get non-steam apps
 			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
-
 			// Show selection screen and return the appid
 			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 
