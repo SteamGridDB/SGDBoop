@@ -18,6 +18,8 @@
 #define MAX_PATH 600 
 #define FALSE 0
 #define TRUE 1
+#define WCHAR char
+#define LPSTR char*
 int GetConsoleWindow();
 void MoveWindow(int, int, int, int, int, int);
 void GetModuleFileName(char*, char*, int);
@@ -32,7 +34,7 @@ int symlink(char* a, char* b) {
 }
 #endif
 
-#define API_VERSION "1"
+#define API_VERSION "2"
 
 typedef struct nonSteamApp
 {
@@ -45,8 +47,9 @@ typedef struct nonSteamApp
 int _nonSteamAppsCount = 0;
 int _sourceModsCount = 0;
 int _goldSourceModsCount = 0;
+int _apiReturnedLines = 0;
 
-void exitWithError(char* error, int errorCode)
+void exitWithError(const char* error, const int errorCode)
 {
 	time_t now = time(0);
 	time_t rawtime;
@@ -54,38 +57,54 @@ void exitWithError(char* error, int errorCode)
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	char* logFilepath = malloc(1000);
+	char* logFilepath = malloc(100);
 	if (OS_Windows) {
-		strcpy(logFilepath, "sgdboop_error.log");
+		WCHAR path[MAX_PATH];
+		GetModuleFileName(NULL, (LPSTR)path, MAX_PATH);
+		char* filename = (char*)path;
+		while (strstr(filename, "\\") > 0) {
+			filename = strstr(filename, "\\") + 1;
+		}
+		*filename = '\0';
+		strcpy(logFilepath, (const char*)path);
+		strcat(logFilepath, "sgdboop_error.log");
 	}
 	else {
-		strcpy(logFilepath, "/var/log/sgdboop_error.log");
+		if (getenv("XDG_STATE_HOME") != NULL) {
+			strcpy(logFilepath, getenv("XDG_STATE_HOME"));
+		}
+		else {
+			strcpy(logFilepath, getenv("HOME"));
+			strcat(logFilepath, "/.local/state");
+		}
+		strcat(logFilepath, "/sgdboop_error.log");
 	}
 
 	FILE* logFile = fopen(logFilepath, "a");
 	if (logFile == NULL) {
 		logFile = fopen(logFilepath, "w");
 	}
-
-	fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
-	fclose(logFile);
+	if (logFile) {
+		fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
+		fclose(logFile);
+	}
 
 	exit(errorCode);
 }
 
 // Call the BOOP API
-char** callAPI(char* grid_type, char* grid_id, char* mode)
+char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 {
 	char authHeader[] = "Authorization: Bearer 62696720-6f69-6c79-2070-65656e75733f";
 	char apiVersionHeader[20] = "X-BOOP-API-VER: ";
 	strcat(apiVersionHeader, API_VERSION);
 	char* url = malloc(512);
-	char** valuesArray = malloc(1024);
+	char*** valuesArray = malloc((sizeof(char**)) * 500);
 
 	strcpy(url, "https://www.steamgriddb.com/api/sgdboop/");
-	strcat(url, grid_type);
+	strcat(url, grid_types);
 	strcat(url, "/");
-	strcat(url, grid_id);
+	strcat(url, grid_ids);
 
 	if (strcmp(mode, "nonsteam") == 0) {
 		strcat(url, "?nonsteam=1");
@@ -108,20 +127,40 @@ char** callAPI(char* grid_type, char* grid_id, char* mode)
 		headers = curl_slist_append(headers, apiVersionHeader);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		res = curl_easy_perform(curl);
+		long http_code = 0;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 		curl_easy_cleanup(curl);
 
-		if (res != CURLE_OK)
+		if (http_code >= 400)
 		{
-			return NULL;
+			char* message = malloc(1000);
+			strcpy(message, "API Error: ");
+			strcat(message, s.ptr);
+			exitWithError(message, (int)http_code);
 		}
 
-		valuesArray[0] = s.ptr;
-		valuesArray[1] = strstr(s.ptr, ",");
-		valuesArray[1][0] = '\0';
-		valuesArray[1] += 1;
-		valuesArray[2] = strstr(valuesArray[1], ",");
-		valuesArray[2][0] = '\0';
-		valuesArray[2] += 1;
+		char* line = s.ptr;
+
+		while (strstr(line, "\r") > 0) {
+			char* endLine = strstr(line, "\r");
+			*endLine = '\0';
+
+			valuesArray[_apiReturnedLines] = malloc((sizeof(char**)) * 1000);
+			valuesArray[_apiReturnedLines][0] = line;
+			valuesArray[_apiReturnedLines][1] = strstr(line, ",");
+			*valuesArray[_apiReturnedLines][1] = '\0';
+			valuesArray[_apiReturnedLines][1] += 1;
+			valuesArray[_apiReturnedLines][2] = strstr(valuesArray[_apiReturnedLines][1], ",");
+			*valuesArray[_apiReturnedLines][2] = '\0';
+			valuesArray[_apiReturnedLines][2] += 1;
+			valuesArray[_apiReturnedLines][3] = strstr(valuesArray[_apiReturnedLines][2], ",");
+			*valuesArray[_apiReturnedLines][3] = '\0';
+			valuesArray[_apiReturnedLines][3] += 1;
+
+			line = endLine + 1;
+
+			_apiReturnedLines++;
+		}
 
 		free(url);
 		return valuesArray;
@@ -437,7 +476,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 		size_t read_reg;
 
 		fp_reg = fopen("~/.steam/steam/registry.vdf", "r");
-		
+
 		// If the file doesn't exist, skip this function
 		if (fp_reg == NULL) {
 			return NULL;
@@ -460,7 +499,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 			}
 		}
 	}
-	
+
 	if (!foundValue) {
 		free(sourceModPath);
 		return NULL;
@@ -623,7 +662,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 }
 
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
-struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
+struct nonSteamApp* getNonSteamApps() {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
@@ -634,11 +673,6 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	strcat(shortcutsVdfPath, "/userdata/");
 	strcat(shortcutsVdfPath, steamid);
 	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
-
-	int old_id_required = 0;
-	if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-		old_id_required = 1;
-	}
 
 	// Parse the file
 	FILE* fp;
@@ -711,7 +745,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			}
 
 			// If an old appid is required, calculate it
-			if (appid == 0 || old_id_required) {
+			if (appid == 0) {
 
 				*nameEndChar = '\0';
 				*exeEndChar = '\0';
@@ -730,14 +764,8 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 			// Do math magic. Valve pls fix
 			appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
-
-			if (old_id_required) {
-				appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
-				sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
-			}
-			else {
-				strcpy(apps[_nonSteamAppsCount].appid_old, "none");
-			}
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
+			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
 
 			// Add the values to struct
 			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
@@ -750,7 +778,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 			parsingChar = appBlockEndPtr + 2;
 		}
 	}
-	
+
 	// Add source (and goldsource) mods
 	struct nonSteamApp* sourceMods = getSourceMods("source");
 	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
@@ -770,7 +798,7 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 		_nonSteamAppsCount++;
 	}
-	
+
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
@@ -826,9 +854,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 			strcpy(appData->appid, apps[i].appid);
 			strcpy(appData->name, apps[i].name);
 			appData->index = apps[i].index;
-			if (strcmp(apps[i].appid_old, "none") != 0) {
-				strcpy(appData->appid_old, apps[i].appid_old);
-			}
+			strcpy(appData->appid_old, apps[i].appid_old);
 			break;
 		}
 	}
@@ -906,9 +932,8 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	unsigned char* iconEndChar = 0;
 	char iconContent[512];
 	strcpy(iconContent, "\001icon\003");
-	strcat(iconContent, "\"");
 	strcat(iconContent, filePath);
-	strcat(iconContent, "\"\003");
+	strcat(iconContent, "\003");
 
 	// Find the app's block
 	for (int i = 0; i < appData->index + 1; i++) {
@@ -1016,12 +1041,12 @@ int main(int argc, char** argv)
 		}
 
 		// Get the params from the string
-		char* type = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
-		char* grid_id = strstr(type, "/");
-		grid_id[0] = '\0';         // End app_id string
-		grid_id += 1;              // Move 1 place
+		char* types = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
+		char* grid_ids = strstr(types, "/");
+		grid_ids[0] = '\0';         // End app_id string
+		grid_ids += 1;              // Move 1 place
 
-		char* mode = strstr(grid_id, "/"); // If there's a method string, use it
+		char* mode = strstr(grid_ids, "/"); // If there's a method string, use it
 		if (mode > 0) {
 			*mode = '\0';
 			mode++;
@@ -1032,58 +1057,70 @@ int main(int argc, char** argv)
 		}
 
 		// Get asset URL
-		char** apiValues = callAPI(type, grid_id, mode);
+		char*** apiValues = callAPI(types, grid_ids, mode);
 		if (apiValues == NULL) {
 			exitWithError("API didn't return an appropriate response.", 82);
 		}
-		char* app_id = apiValues[0];
-		char* orientation = apiValues[1];
-		char* assetUrl = apiValues[2];
 
+		// Use the same nonSteamApp object for all calls
 		struct nonSteamApp* nonSteamAppData = NULL;
 
-		// If the game is a non-steam app, select an imported app
-		if (startsWith(app_id, "nonsteam-")) {
+		for (int line = 0; line < _apiReturnedLines; line++) {
 
-			// Enable IUP GUI
-			IupOpen(&argc, &argv);
-			loadIupIcon();
+			char* app_id = apiValues[line][0];
+			char* orientation = apiValues[line][1];
+			char* assetUrl = apiValues[line][2];
+			char* type = apiValues[line][3];
 
-			// Get non-steam apps
-			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
-			// Show selection screen and return the appid
-			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 
-			app_id = nonSteamAppData->appid;
-		}
+			// If the game is a non-steam app, select an imported app
+			if (startsWith(app_id, "nonsteam-")) {
 
-		// Get Steam base dir
-		char* steamDestDir = getSteamDestinationDir(type, nonSteamAppData);
-		if (steamDestDir == NULL) {
-			exitWithError("Could not locate Steam destination directory.", 83);
-		}
+				// Select app once
+				if (line < 1) {
 
-		// Download asset file
-		char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir, nonSteamAppData);
-		if (outfilename == NULL) {
-			exitWithError("Could not download asset file.", 84);
-		}
+					// Enable IUP GUI
+					IupOpen(&argc, &argv);
+					loadIupIcon();
 
-		// Non-Steam specific actions
-		if (nonSteamAppData) {
+					// Get non-steam apps
+					struct nonSteamApp* apps = getNonSteamApps();
+					// Show selection screen and return the appid
+					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+				}
 
-			// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
-			if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-				createOldIdSymlink(nonSteamAppData, steamDestDir);
+				app_id = nonSteamAppData->appid;
 			}
 
-			// If the asset is a non-Steam icon, add the 
-			else if (strcmp(type, "icon") == 0) {
-				updateVdf(nonSteamAppData, outfilename);
+			// Get Steam base dir
+			char* steamDestDir = getSteamDestinationDir(type, nonSteamAppData);
+			if (steamDestDir == NULL) {
+				exitWithError("Could not locate Steam destination directory.", 83);
 			}
 
-			free(nonSteamAppData);
+			// Download asset file
+			char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir, nonSteamAppData);
+			if (outfilename == NULL) {
+				exitWithError("Could not download asset file.", 84);
+			}
+
+			// Non-Steam specific actions
+			if (nonSteamAppData) {
+
+				// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
+				if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+					createOldIdSymlink(nonSteamAppData, steamDestDir);
+				}
+
+				// If the asset is a non-Steam icon, add the 
+				else if (strcmp(type, "icon") == 0) {
+					updateVdf(nonSteamAppData, outfilename);
+				}
+
+			}
 		}
+
+		free(nonSteamAppData);
 	}
 
 	return 0;
