@@ -44,6 +44,7 @@ typedef struct nonSteamApp
 
 int _nonSteamAppsCount = 0;
 int _sourceModsCount = 0;
+int _goldSourceModsCount = 0;
 
 void exitWithError(char* error, int errorCode)
 {
@@ -385,16 +386,36 @@ char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
 }
 
 // Get source mods appids
-char** getSourceMods()
+struct nonSteamApp* getSourceMods(const char* type)
 {
+	int goldsource = 0;
+	if (strcmp(type, "goldsource") == 0) {
+		goldsource = 1;
+	}
+
 	// Get source mod install path
 	char* sourceModPath = malloc(MAX_PATH);
 	if (OS_Windows) {
 		int foundValue = 0;
-		FILE* terminal = _popen("reg query HKCU\\Software\\Valve\\Steam /v SourceModInstallPath", "r");
+		char* regValue[20];
+		char* regeditCommand[200];
+
+		if (goldsource) {
+			// Goldsource mods
+			strcpy(regValue, "ModInstallPath");
+		}
+		else {
+			// Source mods
+			strcpy(regValue, "SourceModInstallPath");
+		}
+
+		strcpy(regeditCommand, "reg query HKCU\\Software\\Valve\\Steam /v ");
+		strcat(regeditCommand, regValue);
+
+		FILE* terminal = _popen(regeditCommand, "r");
 		char buf[256];
 		while (fgets(buf, sizeof(buf), terminal) != 0) {
-			if (strstr(buf, "SourceModInstallPath")) {
+			if (strstr(buf, regValue)) {
 				char* extractedValue = strstr(buf, "REG_SZ") + 10;
 				strcpy(sourceModPath, extractedValue);
 				foundValue = 1;
@@ -416,7 +437,7 @@ char** getSourceMods()
 	else {
 	}
 
-	struct dirent* de;
+	struct dirent* dir;
 	DIR* dr = opendir(sourceModPath);
 
 	if (dr == NULL)
@@ -426,16 +447,28 @@ char** getSourceMods()
 
 	// Iterate through each file
 	char* filepath = malloc(500);
-	char** sourceMods = malloc(sizeof(char*) * 500000);
+	char** sourceModsNames = malloc(sizeof(char*) * 500000);
+	int* sourceModsSteamAppIds = malloc(sizeof(char*) * 500000);
+	char** sourceModsDirs = malloc(sizeof(char*) * 500000);
+	unsigned long modsCount = 0;
 
-	while ((de = readdir(dr)) != NULL)
+	while ((dir = readdir(dr)) != NULL)
 	{
 
 		// If file exists, parse it
 		strcpy(filepath, sourceModPath);
 		strcat(filepath, "/");
-		strcat(filepath, de->d_name);
-		strcat(filepath, "/gameinfo.txt");
+		strcat(filepath, dir->d_name);
+
+		if (goldsource) {
+			// Goldsource mods
+			strcat(filepath, "/liblist.gam");
+		}
+		else {
+			// Source mods
+			strcat(filepath, "/gameinfo.txt");
+		}
+
 
 		FILE* fp;
 		char* line = NULL;
@@ -449,12 +482,13 @@ char** getSourceMods()
 			continue;
 		}
 
-
 		while ((read = readLine(&line, &len, fp)) != -1) {
+
 
 			// If line contains the "game" key, get the mod's name and create the struct entry
 			unsigned char* commentChar = strstr(line, "//");
 			unsigned char* nameStartChar = strstr(line, "game");
+			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
 
 			if (nameStartChar > 0 && commentChar == 0) {
 
@@ -463,10 +497,49 @@ char** getSourceMods()
 				*nameEndChar = '\0';
 
 				if (nameStartChar > 0) {
-					sourceMods[_sourceModsCount] = malloc(strlen(nameStartChar) + 1);
-					strcpy(sourceMods[_sourceModsCount], nameStartChar);
+					if (goldsource) {
+						// Skip folders that are supposed to be skipped
+						if (strcmp(dir->d_name, "bshift") == 0 ||
+							strcmp(dir->d_name, "cstrike") == 0 ||
+							strcmp(dir->d_name, "czero") == 0 ||
+							strcmp(dir->d_name, "czeror") == 0 ||
+							strcmp(dir->d_name, "dmc") == 0 ||
+							strcmp(dir->d_name, "dod") == 0 ||
+							strcmp(dir->d_name, "gearbox") == 0 ||
+							strcmp(dir->d_name, "ricochet") == 0 ||
+							strcmp(dir->d_name, "tfc") == 0 ||
+							strcmp(dir->d_name, "valve") == 0)
+						{
+							continue;
+						}
+					}
 
-					_sourceModsCount++;
+					sourceModsNames[modsCount] = malloc(strlen(nameStartChar) + 1);
+					sourceModsDirs[modsCount] = malloc(strlen(dir->d_name) + 1);
+					strcpy(sourceModsNames[modsCount], nameStartChar);
+					strcpy(sourceModsDirs[modsCount], dir->d_name);
+
+					if (goldsource) {
+						modsCount++;
+						break;
+					}
+				}
+			}
+			else if (steamAppIdStartChar > 0) {
+
+				// If line contains the "SteamAppId" key, get the mod's name and create the struct entry
+				unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
+
+				steamAppIdStartChar = strstr(line, "SteamAppId") + 14;
+				unsigned char* steamAppIdEndChar = strstr(steamAppIdStartChar, "	");
+				*steamAppIdEndChar = '\0';
+
+				printf("\game: %s, steam app id:%s\n", dir->d_name, steamAppIdStartChar);
+
+				if (steamAppIdStartChar > 0) {
+					sourceModsSteamAppIds[modsCount] = atoi(steamAppIdStartChar);
+
+					modsCount++;
 
 					break;
 				}
@@ -479,6 +552,39 @@ char** getSourceMods()
 	}
 	closedir(dr);
 
+	if (goldsource) {
+		_goldSourceModsCount = modsCount;
+	}
+	else {
+		_sourceModsCount = modsCount;
+	}
+
+	struct nonSteamApp* sourceMods = malloc(sizeof(nonSteamApp) * modsCount);
+
+	for (int i = 0; i < modsCount; i++) {
+		sourceMods[i].index = _nonSteamAppsCount;
+		char* int_string[50];
+		unsigned long hex_index = i;
+		if (goldsource) {
+			hex_index += _sourceModsCount; // Gold source mods mode must be called after normal source mods
+		}
+		sprintf(int_string, "%x", hex_index);
+		hex_index = (int)strtol(int_string, NULL, 16);
+
+		uint64_t appid_old = crcFast(sourceModsDirs[i], strlen(sourceModsDirs[i]));
+
+		if (goldsource) {
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) - 0x1000000;
+		} 
+		else {
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) + sourceModsSteamAppIds[i] - 0x1000000;
+		}
+
+		sprintf(sourceMods[i].appid, "%lu", 2147483649 + hex_index);
+		strcpy(sourceMods[i].name, sourceModsNames[i]);
+		sprintf(sourceMods[i].appid_old, "%" PRIu64, appid_old);
+	}
+
 	return sourceMods;
 }
 
@@ -488,11 +594,17 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
 	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
+	crcInit();
 
 	// Get the shortcuts.vdf file
 	strcat(shortcutsVdfPath, "/userdata/");
 	strcat(shortcutsVdfPath, steamid);
 	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
+
+	int old_id_required = 0;
+	if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+		old_id_required = 1;
+	}
 
 	// Parse the file
 	FILE* fp;
@@ -528,12 +640,6 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		unsigned char* parsingChar = fileContent;
 		unsigned char parsingAppid[512];
 		uint64_t intBytes[4];
-		crcInit();
-
-		int old_id_required = 0;
-		if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-			old_id_required = 1;
-		}
 
 		// Parse the vdf content
 		while (strstr_i(parsingChar, "appname") > 0) {
@@ -611,20 +717,22 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 		}
 	}
 
-	// Add source mods
-	char** sourceMods = getSourceMods();
+	// Add source (and goldsource) mods
+	struct nonSteamApp* sourceMods = getSourceMods("source");
+	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
 	for (int i = 0; i < _sourceModsCount; i++) {
 		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-		strcpy(apps[_nonSteamAppsCount].name, sourceMods[i]);
-		sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)2147483649 + i);
+		strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
+		strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
+		strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
 
-
-		uint64_t appid_old = 0;
-		char* appid_new[50];
-		strcpy(appid_new, apps[_nonSteamAppsCount].appid);
-		appid_old = crcFast(appid_new, strlen(appid_new));
-		appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
-		sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
+		_nonSteamAppsCount++;
+	}
+	for (int i = 0; i < _goldSourceModsCount; i++) {
+		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+		strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
+		strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
+		strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
 
 		_nonSteamAppsCount++;
 	}
@@ -850,7 +958,7 @@ int main(int argc, char** argv)
 	else {
 
 		if (OS_Windows) {
-			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+			//MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
 		}
 
 		// If argument is unregister, unregister and exit
