@@ -1,4 +1,4 @@
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
@@ -1046,7 +1046,7 @@ int main(int argc, char** argv)
 			// Enable IUP GUI and show a message
 			IupOpen(&argc, &argv);
 			loadIupIcon();
-			IupMessage("SGDBoop Test", "SGDBoop is working!");
+			IupMessage("SGDBoop Test", "( ﾉ ﾟｰﾟ)ﾉ SGDBoop is working! ＼(ﾟｰﾟ＼)");
 
 			return 0;
 		}
