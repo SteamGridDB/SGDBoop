@@ -226,13 +226,13 @@ int createURIprotocol() {
 
 		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
-		IupMessage("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		IupMessage("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be run from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		free(regeditCommand);
 		return 0;
 	}
 	else {
 		// Do nothing on linux
-		IupMessage("SGDBoop Information", "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		IupMessage("SGDBoop Information", "SGDBoop is meant to be run from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		return 1;
 	}
 }
