@@ -1046,7 +1046,7 @@ int main(int argc, char** argv)
 			// Enable IUP GUI and show a message
 			IupOpen(&argc, &argv);
 			loadIupIcon();
-			IupMessage("SGDBoop Test", "( ﾉ ﾟｰﾟ)ﾉ SGDBoop is working! ＼(ﾟｰﾟ＼)");
+			IupMessage("SGDBoop Test", "^_^/   SGDBoop is working!   \\^_^");
 
 			return 0;
 		}
