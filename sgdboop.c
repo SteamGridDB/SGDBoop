@@ -1040,6 +1040,17 @@ int main(int argc, char** argv)
 			exitWithError("Invalid URI schema.", 81);
 		}
 
+		// Test mode
+		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
+
+			// Enable IUP GUI and show a message
+			IupOpen(&argc, &argv);
+			loadIupIcon();
+			IupMessage("SGDBoop Test", "SGDBoop is working!");
+
+			return 0;
+		}
+
 		// Get the params from the string
 		char* types = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
 		char* grid_ids = strstr(types, "/");
