@@ -212,9 +212,7 @@ int createURIprotocol() {
 
 		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
-			system("cls");
-			printf("Please run this program as Administrator!\n");
-			system("pause");
+			IupMessage("SGDBoop Error", "Please run this program as Administrator!");
 			free(regeditCommand);
 			return 1;
 		}
@@ -228,9 +226,7 @@ int createURIprotocol() {
 
 		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
-		system("cls");
-		printf("Program registered successfully!\n");
-		system("pause");
+		IupMessage("SGDBoop", "Program registered successfully!");
 		free(regeditCommand);
 		return 0;
 	}
@@ -987,17 +983,22 @@ void loadIupIcon() {
 int main(int argc, char** argv)
 {
 	// If no arguments were given, register the program
+	if (OS_Windows) {
+		MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+	}
+
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
+		if (OS_Windows) {
+			// Enable IUP GUI
+			IupOpen(&argc, &argv);
+			loadIupIcon();
+		}
 		if (createURIprotocol() == 1) {
 			exitWithError("Could not create URI protocol.", 80);
 		}
 	}
 	else {
-
-		if (OS_Windows) {
-			//MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
-		}
 
 		// If argument is unregister, unregister and exit
 		if (strcmp(argv[1], "unregister") == 0) {
