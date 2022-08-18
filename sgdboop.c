@@ -574,7 +574,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 		uint64_t appid_old = crcFast(sourceModsDirs[i], strlen(sourceModsDirs[i]));
 
 		if (goldsource) {
-			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) - 0x1000000;
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) - 0x1000000 - 70;
 		} 
 		else {
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) + sourceModsSteamAppIds[i] - 0x1000000;
