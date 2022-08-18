@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <time.h>
+#include <dirent.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
 #include "include/iup.h"
@@ -42,6 +43,8 @@ typedef struct nonSteamApp
 } nonSteamApp;
 
 int _nonSteamAppsCount = 0;
+int _sourceModsCount = 0;
+int _goldSourceModsCount = 0;
 
 void exitWithError(char* error, int errorCode)
 {
@@ -51,12 +54,22 @@ void exitWithError(char* error, int errorCode)
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	FILE* logFile = fopen("SGDBoop_error_log.txt", "a");
-	if (logFile == NULL) {
-		logFile = fopen("SGDBoop_error_log.txt", "w");
+	char* logFilepath = malloc(1000);
+	if (OS_Windows) {
+		strcpy(logFilepath, "sgdboop_error.log");
+	}
+	else {
+		strcpy(logFilepath, "/var/log/sgdboop_error.log");
 	}
 
-	fprintf(logFile, "%s %s\n\n", asctime(timeinfo), error);
+	FILE* logFile = fopen(logFilepath, "a");
+	if (logFile == NULL) {
+		logFile = fopen(logFilepath, "w");
+	}
+
+	fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
+	fclose(logFile);
+
 	exit(errorCode);
 }
 
@@ -199,9 +212,7 @@ int createURIprotocol() {
 
 		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
-			system("cls");
-			printf("Please run this program as Administrator!\n");
-			system("pause");
+			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
 			free(regeditCommand);
 			return 1;
 		}
@@ -215,15 +226,13 @@ int createURIprotocol() {
 
 		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
-		system("cls");
-		printf("Program registered successfully!\n");
-		system("pause");
+		IupMessage("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be run from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		free(regeditCommand);
 		return 0;
 	}
 	else {
 		// Do nothing on linux
-		printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
+		IupMessage("SGDBoop Information", "SGDBoop is meant to be run from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		return 1;
 	}
 }
@@ -372,16 +381,264 @@ char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
 	return steamBaseDir;
 }
 
+// Get source mods appids
+struct nonSteamApp* getSourceMods(const char* type)
+{
+	int goldsource = 0;
+	if (strcmp(type, "goldsource") == 0) {
+		goldsource = 1;
+	}
+
+	// Get source mod install path
+	int foundValue = 0;
+	char* sourceModPath = malloc(MAX_PATH);
+	char regValue[50];
+
+	if (goldsource) {
+		// Goldsource mods
+		strcpy(regValue, "ModInstallPath");
+	}
+	else {
+		// Source mods
+		strcpy(regValue, "SourceModInstallPath");
+	}
+
+	if (OS_Windows) {
+		// Windows: Query registry
+		char regeditCommand[200];
+
+		strcpy(regeditCommand, "reg query HKCU\\Software\\Valve\\Steam /v ");
+		strcat(regeditCommand, regValue);
+
+		FILE* terminal = _popen(regeditCommand, "r");
+		char buf[256];
+		while (fgets(buf, sizeof(buf), terminal) != 0) {
+			if (strstr(buf, regValue)) {
+				char* extractedValue = strstr(buf, "REG_SZ") + 10;
+				strcpy(sourceModPath, extractedValue);
+				foundValue = 1;
+			}
+		}
+		_pclose(terminal);
+
+
+		int sourceModDirLength = strlen(sourceModPath);
+		for (int i = 0; i < sourceModDirLength; i++) {
+			if (sourceModPath[i] == '\n') {
+				sourceModPath[i] = '\0';
+			}
+		}
+	}
+	else {
+		// Linux: Read registry.vdf
+		FILE* fp_reg;
+		char* line_reg = NULL;
+		size_t len_reg = 0;
+		size_t read_reg;
+
+		fp_reg = fopen("~/.steam/steam/registry.vdf", "r");
+		
+		// If the file doesn't exist, skip this function
+		if (fp_reg == NULL) {
+			return NULL;
+		}
+
+		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
+
+			// If line contains the regvalue's key, capture the value
+			unsigned char* extractedValue = strstr(line_reg, regValue);
+
+			if (extractedValue > 0) {
+				extractedValue += strlen(regValue) + 1;
+				extractedValue = strstr(extractedValue, "\"");
+				unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
+				*extractedValueEnd = '\0';
+
+				strcpy(sourceModPath, extractedValue);
+				foundValue = 1;
+				break;
+			}
+		}
+	}
+	
+	if (!foundValue) {
+		free(sourceModPath);
+		return NULL;
+	}
+
+	struct dirent* dir;
+	DIR* dr = opendir(sourceModPath);
+
+	if (dr == NULL)
+	{
+		return NULL;
+	}
+
+	// Iterate through each file
+	char* filepath = malloc(500);
+	char** sourceModsNames = malloc(sizeof(char*) * 500000);
+	int* sourceModsSteamAppIds = malloc(sizeof(char*) * 500000);
+	char** sourceModsDirs = malloc(sizeof(char*) * 500000);
+	unsigned long modsCount = 0;
+
+	while ((dir = readdir(dr)) != NULL)
+	{
+
+		// If file exists, parse it
+		strcpy(filepath, sourceModPath);
+		strcat(filepath, "/");
+		strcat(filepath, dir->d_name);
+
+		if (goldsource) {
+			// Goldsource mods
+			strcat(filepath, "/liblist.gam");
+		}
+		else {
+			// Source mods
+			strcat(filepath, "/gameinfo.txt");
+		}
+
+
+		FILE* fp;
+		char* line = NULL;
+		size_t len = 0;
+		size_t read;
+
+		fp = fopen(filepath, "r");
+
+		// If the file doesn't exist, move on to the next file
+		if (fp == NULL) {
+			continue;
+		}
+
+		while ((read = readLine(&line, &len, fp)) != -1) {
+
+
+			// If line contains the "game" key, get the mod's name and create the struct entry
+			unsigned char* commentChar = strstr(line, "//");
+			unsigned char* nameStartChar = strstr(line, "game");
+			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
+
+			if (nameStartChar > 0 && commentChar == 0) {
+
+				nameStartChar = strstr(line, "\"") + 1;
+				unsigned char* nameEndChar = strstr(nameStartChar, "\"");
+				*nameEndChar = '\0';
+
+				if (nameStartChar > 0) {
+					if (goldsource) {
+						// Skip folders that are supposed to be skipped
+						if (strcmp(dir->d_name, "bshift") == 0 ||
+							strcmp(dir->d_name, "cstrike") == 0 ||
+							strcmp(dir->d_name, "czero") == 0 ||
+							strcmp(dir->d_name, "czeror") == 0 ||
+							strcmp(dir->d_name, "dmc") == 0 ||
+							strcmp(dir->d_name, "dod") == 0 ||
+							strcmp(dir->d_name, "gearbox") == 0 ||
+							strcmp(dir->d_name, "ricochet") == 0 ||
+							strcmp(dir->d_name, "tfc") == 0 ||
+							strcmp(dir->d_name, "valve") == 0)
+						{
+							continue;
+						}
+					}
+
+					sourceModsNames[modsCount] = malloc(strlen(nameStartChar) + 1);
+					sourceModsDirs[modsCount] = malloc(strlen(dir->d_name) + 1);
+					strcpy(sourceModsNames[modsCount], nameStartChar);
+					strcpy(sourceModsDirs[modsCount], dir->d_name);
+
+					if (goldsource) {
+						modsCount++;
+						break;
+					}
+				}
+			}
+			else if (steamAppIdStartChar > 0) {
+
+				// If line contains the "SteamAppId" key, get the mod's name and create the struct entry
+				unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
+
+				// Extract steamAppId value
+				steamAppIdStartChar = strstr(line, "SteamAppId") + 10;
+				while (isspace(*steamAppIdStartChar)) {
+					steamAppIdStartChar++;
+				}
+				unsigned char* steamAppIdEndChar = steamAppIdStartChar;
+				while (!isspace(*steamAppIdEndChar)) {
+					steamAppIdEndChar++;
+				}
+				*steamAppIdEndChar = '\0';
+
+				if (steamAppIdStartChar > 0) {
+					sourceModsSteamAppIds[modsCount] = atoi(steamAppIdStartChar);
+
+					modsCount++;
+
+					break;
+				}
+			}
+		}
+
+		fclose(fp);
+		if (line)
+			free(line);
+	}
+	closedir(dr);
+
+	if (goldsource) {
+		_goldSourceModsCount = modsCount;
+	}
+	else {
+		_sourceModsCount = modsCount;
+	}
+
+	struct nonSteamApp* sourceMods = malloc(sizeof(nonSteamApp) * modsCount);
+
+	for (int i = 0; i < modsCount; i++) {
+		sourceMods[i].index = _nonSteamAppsCount;
+		char int_string[50];
+		unsigned int hex_index = i;
+		if (goldsource) {
+			hex_index += _sourceModsCount; // Gold source mods mode must be called after normal source mods
+		}
+		sprintf(int_string, "%x", hex_index);
+		hex_index = (unsigned int)strtol(int_string, NULL, 16);
+
+		uint64_t appid_old = crcFast(sourceModsDirs[i], strlen(sourceModsDirs[i]));
+
+		if (goldsource) {
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) - 0x1000000 + 70;
+		}
+		else {
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) + sourceModsSteamAppIds[i] - 0x1000000;
+		}
+
+		sprintf(sourceMods[i].appid, "%lu", 2147483649 + hex_index);
+		strcpy(sourceMods[i].name, sourceModsNames[i]);
+		sprintf(sourceMods[i].appid_old, "%" PRIu64, appid_old);
+	}
+
+	return sourceMods;
+}
+
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
 struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
+	crcInit();
 
 	// Get the shortcuts.vdf file
 	strcat(shortcutsVdfPath, "/userdata/");
 	strcat(shortcutsVdfPath, steamid);
 	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
+
+	int old_id_required = 0;
+	if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+		old_id_required = 1;
+	}
 
 	// Parse the file
 	FILE* fp;
@@ -389,131 +646,138 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 	size_t bytes = 0;
 	size_t read = sizeof buf;
 	fp = fopen(shortcutsVdfPath, "rb");
-	if (fp == NULL) {
-		free(shortcutsVdfPath);
-		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
-		exitWithError("Could not the non-Steam apps file.", 90);
-	}
-	fseek(fp, 0L, SEEK_END);
-	size_t filesize = ftell(fp) + 2;
-	fseek(fp, 0, SEEK_SET);
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_END);
+		size_t filesize = ftell(fp) + 2;
+		fseek(fp, 0, SEEK_SET);
 
-	unsigned char* fileContent = malloc(filesize + 1);
-	unsigned int currentFileByte = 0;
+		unsigned char* fileContent = malloc(filesize + 1);
+		unsigned int currentFileByte = 0;
 
-	// Load the vdf in memory and fix string-related issues
-	while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
-		for (int i = 0; i < sizeof buf; i++) {
-			if (buf[i] == 0x00) {
-				fileContent[currentFileByte] = 0x03;
+		// Load the vdf in memory and fix string-related issues
+		while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+			for (int i = 0; i < sizeof buf; i++) {
+				if (buf[i] == 0x00) {
+					fileContent[currentFileByte] = 0x03;
+				}
+				else {
+					fileContent[currentFileByte] = buf[i];
+				}
+				currentFileByte++;
+			}
+		}
+		fileContent[filesize - 2] = '\x08';
+		fileContent[filesize - 1] = '\x03';
+		fileContent[filesize] = '\0';
+
+		fclose(fp);
+		unsigned char* parsingChar = fileContent;
+		unsigned char parsingAppid[512];
+		uint64_t intBytes[4];
+
+		// Parse the vdf content
+		while (strstr_i(parsingChar, "appname") > 0) {
+
+			uint64_t appid_old = 0;
+			uint64_t appid = 0;
+
+			// Find app name
+			unsigned char* nameStartChar = strstr_i(parsingChar, "\001appname") + 9;
+			unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
+
+			// Find exe path
+			unsigned char* exeStartChar = strstr_i(parsingChar, "\001exe") + 5;
+			unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
+
+			unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
+			unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+			while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
+				appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
+			}
+
+			// If appid was found in this app block
+			if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
+				unsigned char* hexBytes = appidPtr + 7;
+				intBytes[0] = *(hexBytes + 3);
+				intBytes[1] = *(hexBytes + 2);
+				intBytes[2] = *(hexBytes + 1);
+				intBytes[3] = *(hexBytes + 0);
+
+				appid =
+					((uint64_t)intBytes[0] << 24) |
+					((uint64_t)intBytes[1] << 16) |
+					((uint64_t)intBytes[2] << 8) |
+					((uint64_t)intBytes[3] << 0);
+			}
+
+			// If an old appid is required, calculate it
+			if (appid == 0 || old_id_required) {
+
+				*nameEndChar = '\0';
+				*exeEndChar = '\0';
+
+				strcpy(parsingAppid, exeStartChar);
+				strcat(parsingAppid, nameStartChar);
+				appid_old = crcFast(parsingAppid, strlen(parsingAppid));
+				if (appid == 0) {
+					appid = appid_old;
+				}
+
+				*exeEndChar = '\x03';
+			}
+
+			*nameEndChar = '\0'; // Close name string
+
+			// Do math magic. Valve pls fix
+			appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
+
+			if (old_id_required) {
+				appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
+				sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
 			}
 			else {
-				fileContent[currentFileByte] = buf[i];
-			}
-			currentFileByte++;
-		}
-	}
-	fileContent[filesize - 2] = '\x08';
-	fileContent[filesize - 1] = '\x03';
-	fileContent[filesize] = '\0';
-
-	fclose(fp);
-
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 500000);
-	unsigned char* parsingChar = fileContent;
-	unsigned char parsingAppid[512];
-	uint64_t intBytes[4];
-	crcInit();
-
-	int old_id_required = 0;
-	if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-		old_id_required = 1;
-	}
-
-	// Parse the vdf content
-	while (strstr_i(parsingChar, "appname") > 0) {
-
-		uint64_t appid_old = 0;
-		uint64_t appid = 0;
-
-		// Find app name
-		unsigned char* nameStartChar = strstr_i(parsingChar, "\001appname") + 9;
-		unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
-
-		// Find exe path
-		unsigned char* exeStartChar = strstr_i(parsingChar, "\001exe") + 5;
-		unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
-
-		unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
-		unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
-		while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
-			appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
-		}
-
-		// If appid was found in this app block
-		if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
-			unsigned char* hexBytes = appidPtr + 7;
-			intBytes[0] = *(hexBytes + 3);
-			intBytes[1] = *(hexBytes + 2);
-			intBytes[2] = *(hexBytes + 1);
-			intBytes[3] = *(hexBytes + 0);
-
-			appid =
-				((uint64_t)intBytes[0] << 24) |
-				((uint64_t)intBytes[1] << 16) |
-				((uint64_t)intBytes[2] << 8) |
-				((uint64_t)intBytes[3] << 0);
-		}
-
-		// If an old appid is required, calculate it
-		if (appid == 0 || old_id_required) {
-
-			*nameEndChar = '\0';
-			*exeEndChar = '\0';
-
-			strcpy(parsingAppid, exeStartChar);
-			strcat(parsingAppid, nameStartChar);
-			appid_old = crcFast(parsingAppid, strlen(parsingAppid));
-			if (appid == 0) {
-				appid = appid_old;
+				strcpy(apps[_nonSteamAppsCount].appid_old, "none");
 			}
 
-			*exeEndChar = '\x03';
+			// Add the values to struct
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
+			sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
+			_nonSteamAppsCount++;
+
+			// Move parser to end of app data
+			*nameEndChar = 0x03; // Revert name string to prevent string-related problems
+			parsingChar = appBlockEndPtr + 2;
 		}
-
-		*nameEndChar = '\0'; // Close name string
-
-		// Do math magic. Valve pls fix
-		appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
-
-		if (old_id_required) {
-			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
-			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
-		}
-		else {
-			strcpy(apps[_nonSteamAppsCount].appid_old, "none");
-		}
-
-		// Add the values to struct
+	}
+	
+	// Add source (and goldsource) mods
+	struct nonSteamApp* sourceMods = getSourceMods("source");
+	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
+	for (int i = 0; i < _sourceModsCount; i++) {
 		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-		strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
-		sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
-		_nonSteamAppsCount++;
+		strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
+		strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
+		strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
 
-		// Move parser to end of app data
-		*nameEndChar = 0x03; // Revert name string to prevent string-related problems
-		parsingChar = appBlockEndPtr + 2;
+		_nonSteamAppsCount++;
 	}
+	for (int i = 0; i < _goldSourceModsCount; i++) {
+		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+		strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
+		strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
+		strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
+
+		_nonSteamAppsCount++;
+	}
+	
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
 		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
-		free(fileContent);
 		free(apps);
 		exitWithError("Could not find any non-Steam apps in the according file.", 91);
 	}
-
-	free(fileContent);
 
 	return apps;
 }
@@ -521,8 +785,6 @@ struct nonSteamApp* getNonSteamApps(char* type, char* orientation) {
 // Select a non-steam app from a dropdown list and return its ID
 struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
 
-	char temp[512];
-	sprintf(temp, "%d", _nonSteamAppsCount);
 	char* appid = malloc(128);
 
 	char** values = malloc(sizeof(char*) * _nonSteamAppsCount);
@@ -722,17 +984,21 @@ void loadIupIcon() {
 int main(int argc, char** argv)
 {
 	// If no arguments were given, register the program
+	if (OS_Windows) {
+		MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+	}
+
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
+		// Enable IUP GUI
+		IupOpen(&argc, &argv);
+		loadIupIcon();
+
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
 			exitWithError("Could not create URI protocol.", 80);
 		}
 	}
 	else {
-
-		if (OS_Windows) {
-			MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
-		}
 
 		// If argument is unregister, unregister and exit
 		if (strcmp(argv[1], "unregister") == 0) {
@@ -785,7 +1051,6 @@ int main(int argc, char** argv)
 
 			// Get non-steam apps
 			struct nonSteamApp* apps = getNonSteamApps(type, orientation);
-
 			// Show selection screen and return the appid
 			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 
