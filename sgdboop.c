@@ -394,20 +394,22 @@ struct nonSteamApp* getSourceMods(const char* type)
 	}
 
 	// Get source mod install path
+	int foundValue = 0;
 	char* sourceModPath = malloc(MAX_PATH);
-	if (OS_Windows) {
-		int foundValue = 0;
-		char* regValue[20];
-		char* regeditCommand[200];
+	char regValue[50];
 
-		if (goldsource) {
-			// Goldsource mods
-			strcpy(regValue, "ModInstallPath");
-		}
-		else {
-			// Source mods
-			strcpy(regValue, "SourceModInstallPath");
-		}
+	if (goldsource) {
+		// Goldsource mods
+		strcpy(regValue, "ModInstallPath");
+	}
+	else {
+		// Source mods
+		strcpy(regValue, "SourceModInstallPath");
+	}
+
+	if (OS_Windows) {
+		// Windows: Query registry
+		char regeditCommand[200];
 
 		strcpy(regeditCommand, "reg query HKCU\\Software\\Valve\\Steam /v ");
 		strcat(regeditCommand, regValue);
@@ -422,10 +424,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 			}
 		}
 		_pclose(terminal);
-		if (!foundValue) {
-			free(sourceModPath);
-			return NULL;
-		}
+
 
 		int sourceModDirLength = strlen(sourceModPath);
 		for (int i = 0; i < sourceModDirLength; i++) {
@@ -435,6 +434,40 @@ struct nonSteamApp* getSourceMods(const char* type)
 		}
 	}
 	else {
+		// Linux: Read registry.vdf
+		FILE* fp_reg;
+		char* line_reg = NULL;
+		size_t len_reg = 0;
+		size_t read_reg;
+
+		fp_reg = fopen("~/.steam/steam/registry.vdf", "r");
+
+		// If the file doesn't exist, move on to the next file
+		if (fp_reg == NULL) {
+			exitWithError("Could not locate registry.vdf", 96);
+		}
+
+		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
+
+
+			// If line contains the regvalue's key, capture the value
+			unsigned char* extractedValue = strstr(line_reg, regValue);
+
+			if (extractedValue > 0) {
+				extractedValue = strstr(extractedValue, "\"");
+				unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
+				*extractedValueEnd = '\0';
+
+				strcpy(sourceModPath, extractedValue);
+				foundValue = 1;
+				break;
+			}
+		}
+	}
+
+	if (!foundValue) {
+		free(sourceModPath);
+		return NULL;
 	}
 
 	struct dirent* dir;
@@ -534,8 +567,6 @@ struct nonSteamApp* getSourceMods(const char* type)
 				unsigned char* steamAppIdEndChar = strstr(steamAppIdStartChar, "	");
 				*steamAppIdEndChar = '\0';
 
-				printf("\game: %s, steam app id:%s\n", dir->d_name, steamAppIdStartChar);
-
 				if (steamAppIdStartChar > 0) {
 					sourceModsSteamAppIds[modsCount] = atoi(steamAppIdStartChar);
 
@@ -563,19 +594,19 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 	for (int i = 0; i < modsCount; i++) {
 		sourceMods[i].index = _nonSteamAppsCount;
-		char* int_string[50];
-		unsigned long hex_index = i;
+		char int_string[50];
+		unsigned int hex_index = i;
 		if (goldsource) {
 			hex_index += _sourceModsCount; // Gold source mods mode must be called after normal source mods
 		}
 		sprintf(int_string, "%x", hex_index);
-		hex_index = (int)strtol(int_string, NULL, 16);
+		hex_index = (unsigned int)strtol(int_string, NULL, 16);
 
 		uint64_t appid_old = crcFast(sourceModsDirs[i], strlen(sourceModsDirs[i]));
 
 		if (goldsource) {
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) - 0x1000000 + 70;
-		} 
+		}
 		else {
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000) + sourceModsSteamAppIds[i] - 0x1000000;
 		}
@@ -1017,7 +1048,6 @@ int main(int argc, char** argv)
 			nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 
 			app_id = nonSteamAppData->appid;
-			printf("appid: %s", app_id);
 		}
 
 		// Get Steam base dir
