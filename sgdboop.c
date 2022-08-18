@@ -563,8 +563,15 @@ struct nonSteamApp* getSourceMods(const char* type)
 				// If line contains the "SteamAppId" key, get the mod's name and create the struct entry
 				unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
 
-				steamAppIdStartChar = strstr(line, "SteamAppId") + 14;
-				unsigned char* steamAppIdEndChar = strstr(steamAppIdStartChar, "	");
+				// Extract steamAppId value
+				steamAppIdStartChar = strstr(line, "SteamAppId") + 10;
+				while (isspace(*steamAppIdStartChar)) {
+					steamAppIdStartChar++;
+				}
+				unsigned char* steamAppIdEndChar = steamAppIdStartChar;
+				while (!isspace(*steamAppIdEndChar)) {
+					steamAppIdEndChar++;
+				}
 				*steamAppIdEndChar = '\0';
 
 				if (steamAppIdStartChar > 0) {
