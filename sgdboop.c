@@ -42,6 +42,7 @@ typedef struct nonSteamApp
 	char name[300];
 	char appid[128];
 	char appid_old[128];
+	char type[50];
 } nonSteamApp;
 
 int _nonSteamAppsCount = 0;
@@ -662,7 +663,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 }
 
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
-struct nonSteamApp* getNonSteamApps() {
+struct nonSteamApp* getNonSteamApps(int includeMods) {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
@@ -771,6 +772,7 @@ struct nonSteamApp* getNonSteamApps() {
 			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
 			strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
 			sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
+			strcpy(apps[_nonSteamAppsCount].type, "nonsteam-app");
 			_nonSteamAppsCount++;
 
 			// Move parser to end of app data
@@ -780,23 +782,27 @@ struct nonSteamApp* getNonSteamApps() {
 	}
 
 	// Add source (and goldsource) mods
-	struct nonSteamApp* sourceMods = getSourceMods("source");
-	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
-	for (int i = 0; i < _sourceModsCount; i++) {
-		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-		strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
-		strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
-		strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
+	if (includeMods) {
+		struct nonSteamApp* sourceMods = getSourceMods("source");
+		struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
+		for (int i = 0; i < _sourceModsCount; i++) {
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
+			strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
+			strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
+			strcpy(apps[_nonSteamAppsCount].type, "source-mod");
 
-		_nonSteamAppsCount++;
-	}
-	for (int i = 0; i < _goldSourceModsCount; i++) {
-		apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-		strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
-		strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
-		strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
+			_nonSteamAppsCount++;
+		}
+		for (int i = 0; i < _goldSourceModsCount; i++) {
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
+			strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
+			strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
+			strcpy(apps[_nonSteamAppsCount].type, "goldsource-mod");
 
-		_nonSteamAppsCount++;
+			_nonSteamAppsCount++;
+		}
 	}
 
 
@@ -1094,10 +1100,22 @@ int main(int argc, char** argv)
 					IupOpen(&argc, &argv);
 					loadIupIcon();
 
+					// Do not include mods in the dropdown list if the only asset selected was an icon
+					int includeMods = 1;
+					if (strcmp(types, "icon") == 0) {
+						includeMods = 0;
+					}
+
 					// Get non-steam apps
-					struct nonSteamApp* apps = getNonSteamApps();
-					// Show selection screen and return the appid
+					struct nonSteamApp* apps = getNonSteamApps(includeMods);
+
+					// Show selection screen and return the struct
 					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+				}
+
+				// Skip icons for source and goldsource mods
+				if (strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0) {
+					continue;
 				}
 
 				app_id = nonSteamAppData->appid;
