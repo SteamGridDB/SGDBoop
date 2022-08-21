@@ -861,6 +861,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 			strcpy(appData->name, apps[i].name);
 			appData->index = apps[i].index;
 			strcpy(appData->appid_old, apps[i].appid_old);
+			strcpy(appData->type, apps[i].type);
 			break;
 		}
 	}
@@ -1087,7 +1088,7 @@ int main(int argc, char** argv)
 			char* app_id = apiValues[line][0];
 			char* orientation = apiValues[line][1];
 			char* assetUrl = apiValues[line][2];
-			char* type = apiValues[line][3];
+			char* asset_type = apiValues[line][3];
 
 
 			// If the game is a non-steam app, select an imported app
@@ -1102,7 +1103,7 @@ int main(int argc, char** argv)
 
 					// Do not include mods in the dropdown list if the only asset selected was an icon
 					int includeMods = 1;
-					if (strcmp(types, "icon") == 0 || strcmp(types, "steam") == 0) {
+					if (strcmp(types, "icon") == 0 || (strcmp(types, "steam") == 0 && strcmp(asset_type, "icon") == 0)) {
 						includeMods = 0;
 					}
 
@@ -1113,8 +1114,9 @@ int main(int argc, char** argv)
 					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 				}
 
-				// Skip icons for source and goldsource mods
-				if (strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0 || strcmp(types, "steam") == 0) {
+				// Skip icons for source/goldsource mods and official steam assets
+				if (strcmp(asset_type, "icon") == 0 &&
+					(strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0 || strcmp(types, "steam") == 0)) {
 					continue;
 				}
 
@@ -1122,13 +1124,13 @@ int main(int argc, char** argv)
 			}
 
 			// Get Steam base dir
-			char* steamDestDir = getSteamDestinationDir(type, nonSteamAppData);
+			char* steamDestDir = getSteamDestinationDir(asset_type, nonSteamAppData);
 			if (steamDestDir == NULL) {
 				exitWithError("Could not locate Steam destination directory.", 83);
 			}
 
 			// Download asset file
-			char* outfilename = downloadAssetFile(app_id, assetUrl, type, orientation, steamDestDir, nonSteamAppData);
+			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, steamDestDir, nonSteamAppData);
 			if (outfilename == NULL) {
 				exitWithError("Could not download asset file.", 84);
 			}
@@ -1137,12 +1139,12 @@ int main(int argc, char** argv)
 			if (nonSteamAppData) {
 
 				// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
-				if (strcmp(type, "grid") == 0 && strcmp(orientation, "l") == 0) {
+				if (strcmp(asset_type, "grid") == 0 && strcmp(orientation, "l") == 0) {
 					createOldIdSymlink(nonSteamAppData, steamDestDir);
 				}
 
 				// If the asset is a non-Steam icon, add the 
-				else if (strcmp(type, "icon") == 0) {
+				else if (strcmp(asset_type, "icon") == 0) {
 					updateVdf(nonSteamAppData, outfilename);
 				}
 
