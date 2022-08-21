@@ -1102,7 +1102,7 @@ int main(int argc, char** argv)
 
 					// Do not include mods in the dropdown list if the only asset selected was an icon
 					int includeMods = 1;
-					if (strcmp(types, "icon") == 0) {
+					if (strcmp(types, "icon") == 0 || strcmp(types, "steam") == 0) {
 						includeMods = 0;
 					}
 
@@ -1114,7 +1114,7 @@ int main(int argc, char** argv)
 				}
 
 				// Skip icons for source and goldsource mods
-				if (strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0) {
+				if (strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0 || strcmp(types, "steam") == 0) {
 					continue;
 				}
 
