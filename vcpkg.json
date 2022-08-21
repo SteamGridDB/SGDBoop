@@ -2,6 +2,7 @@
     "name": "sgdboop",
     "version-string": "1.0",
     "dependencies": [
-        "curl"
+        "curl",
+        "dirent"
     ]
 }
