@@ -50,6 +50,17 @@ int _sourceModsCount = 0;
 int _goldSourceModsCount = 0;
 int _apiReturnedLines = 0;
 
+// Add an icon to IUP windows
+void loadIupIcon() {
+	unsigned char image_data[256] = { 0 };
+
+	Ihandle* sgdboop_image = IupImage(16, 16, image_data);
+	IupSetAttribute(sgdboop_image, "0", "BGCOLOR");
+	IupSetHandle("SGDBOOPIMAGE", sgdboop_image);
+	IupSetGlobal("ICON", "SGDBOOPIMAGE");
+}
+
+// Log error messages
 void logError(const char* error, const int errorCode)
 {
 	time_t now = time(0);
@@ -91,6 +102,7 @@ void logError(const char* error, const int errorCode)
 	}
 }
 
+// Log an error and exit with the given error code
 void exitWithError(const char* error, const int errorCode) {
 	logError(error, errorCode);
 	exit(errorCode);
@@ -126,7 +138,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
-		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, FALSE);
 		headers = curl_slist_append(headers, authHeader);
 		headers = curl_slist_append(headers, apiVersionHeader);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -140,6 +152,13 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			char* message = malloc(1000);
 			strcpy(message, "API Error: ");
 			strcat(message, s.ptr);
+
+			if (startsWith(s.ptr, "error-")) {
+				strreplace(message, "error-", " ");
+				IupOpen(NULL, NULL);
+				loadIupIcon();
+				IupMessage("SGDBoop Error", message);
+			}
 			exitWithError(message, (int)http_code);
 		}
 
@@ -1029,16 +1048,7 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	}
 }
 
-// Add an icon to IUP windows
-void loadIupIcon() {
-	unsigned char image_data[256] = { 0 };
-
-	Ihandle* sgdboop_image = IupImage(16, 16, image_data);
-	IupSetAttribute(sgdboop_image, "0", "BGCOLOR");
-	IupSetHandle("SGDBOOPIMAGE", sgdboop_image);
-	IupSetGlobal("ICON", "SGDBOOPIMAGE");
-}
-
+// Main
 int main(int argc, char** argv)
 {
 	// If no arguments were given, register the program
