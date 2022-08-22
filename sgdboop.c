@@ -50,7 +50,7 @@ int _sourceModsCount = 0;
 int _goldSourceModsCount = 0;
 int _apiReturnedLines = 0;
 
-void exitWithError(const char* error, const int errorCode)
+void logError(const char* error, const int errorCode)
 {
 	time_t now = time(0);
 	time_t rawtime;
@@ -89,7 +89,10 @@ void exitWithError(const char* error, const int errorCode)
 		fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
 		fclose(logFile);
 	}
+}
 
+void exitWithError(const char* error, const int errorCode) {
+	logError(error, errorCode);
 	exit(errorCode);
 }
 
@@ -483,11 +486,14 @@ struct nonSteamApp* getSourceMods(const char* type)
 		strcpy(regValue, regValueTemp);
 
 		char* regFileLocation = getSteamBaseDir();
-		strcat(regFileLocation, "/../registry.vdf");
+		strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
 		fp_reg = fopen(regFileLocation, "r");
 
 		// If the file doesn't exist, skip this function
 		if (fp_reg == NULL) {
+			char errorMessage[500];
+			sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
+			logError(errorMessage, 96);
 			return NULL;
 		}
 
@@ -510,10 +516,15 @@ struct nonSteamApp* getSourceMods(const char* type)
 		}
 
 		// Replace "//" with "\"
-		strreplace(sourceModPath, "\\\\", "/");
+		if (foundValue) {
+			strreplace(sourceModPath, "\\\\", "/");
+		}
 	}
 
 	if (!foundValue) {
+		char errorMessage[500];
+		sprintf(errorMessage, "Could not find %s (either in regedit or registry.vdf)", regValue);
+		logError(errorMessage, 97);
 		free(sourceModPath);
 		return NULL;
 	}
@@ -523,6 +534,9 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 	if (dr == NULL)
 	{
+		char errorMessage[500];
+		sprintf(errorMessage, "Could not read directory %s", sourceModPath);
+		logError(errorMessage, 98);
 		return NULL;
 	}
 
@@ -1126,9 +1140,9 @@ int main(int argc, char** argv)
 					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
 				}
 
-				// Skip icons for source/goldsource mods and official steam assets
+				// Skip icons for source/goldsource mods
 				if (strcmp(asset_type, "icon") == 0 &&
-					(strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0 || strcmp(types, "steam") == 0)) {
+					(strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0)) {
 					continue;
 				}
 

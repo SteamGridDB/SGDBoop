@@ -96,18 +96,29 @@ char* strstr_i(const char* p1, const char* p2) {
 // Replace a substring in a string with another string
 char* strreplace(char* origString, const char* searchString, const char* replaceString) {
 	char* searchIndex = origString;
+	char* tmpString = malloc(strlen(origString) + 1);
+	strcpy(tmpString, origString);
 
 	while (strstr(searchIndex, searchString) != NULL) {
 		searchIndex = strstr(searchIndex, searchString);
 		*searchIndex = '\0';
 
-		origString = realloc(origString, strlen(origString) + strlen(replaceString) + 1);
-		strcat(origString, replaceString);
-		searchIndex += strlen(searchString);
+		*(tmpString + strlen(origString)) = '\0';
 
-		origString = realloc(origString, strlen(origString) + strlen(searchIndex) + 1);
-		strcat(origString, searchIndex);
+		tmpString = realloc(tmpString, strlen(tmpString) + strlen(replaceString) + 1);
+		strcat(tmpString, replaceString);
+		int offset = strlen(searchString);
+		if (offset < strlen(replaceString)) {
+			offset = strlen(replaceString);
+		}
+		searchIndex += offset;
+
+		tmpString = realloc(tmpString, strlen(tmpString) + strlen(searchIndex) + 1);
+		strcat(tmpString, searchIndex);
 	}
 
+	origString = realloc(origString, strlen(tmpString) + 1);
+	strcpy(origString, tmpString);
+	free(tmpString);
 	return origString;
 }
