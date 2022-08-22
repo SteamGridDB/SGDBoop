@@ -10,6 +10,19 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.0" date="2022-08-22">
+      <description>
+        <ul>
+          <li>Ability to change icons for non-Steam apps.</li>
+          <li>Support for Source and GoldSrc mods.</li>
+          <li>Boop default Steam assets onto non-Steam apps.</li>
+          <li>Added "sgdb://boop/test" to test if SGDBoop is launching from the browser properly.</li>
+          <li>Functionality to apply multiple assets to a single app at once.</li>
+          <li>Error logging.</li>
+          <li>Fixed bugs.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.0" date="2022-05-11">
       <description>
         <p>Added ability to change assets for non-Steam apps.</p>
@@ -30,10 +43,6 @@
     <screenshot>
       <caption>Button to press to trigger SGDBoop</caption>
       <image>https://github.com/SteamGridDB/SGDBoop/raw/main/res/screenshots/apply-with-boop.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Button to enable "Apply with BOOP" button</caption>
-      <image>https://github.com/SteamGridDB/SGDBoop/raw/main/res/screenshots/enable-boop.png</image>
     </screenshot>
   </screenshots>
   <summary>Apply SteamGridDB assets to Steam</summary>
