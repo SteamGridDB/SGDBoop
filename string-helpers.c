@@ -100,18 +100,14 @@ char* strreplace(char* origString, const char* searchString, const char* replace
 	strcpy(tmpString, origString);
 
 	while (strstr(searchIndex, searchString) != NULL) {
+		
 		searchIndex = strstr(searchIndex, searchString);
 		*searchIndex = '\0';
-
-		*(tmpString + strlen(origString)) = '\0';
+		*(tmpString + (searchIndex - origString)) = '\0';
 
 		tmpString = realloc(tmpString, strlen(tmpString) + strlen(replaceString) + 1);
 		strcat(tmpString, replaceString);
-		int offset = strlen(searchString);
-		if (offset < strlen(replaceString)) {
-			offset = strlen(replaceString);
-		}
-		searchIndex += offset;
+		searchIndex += strlen(searchString);
 
 		tmpString = realloc(tmpString, strlen(tmpString) + strlen(searchIndex) + 1);
 		strcat(tmpString, searchIndex);
