@@ -92,3 +92,22 @@ char* strstr_i(const char* p1, const char* p2) {
 			return 0;
 	}
 }
+
+// Replace a substring in a string with another string
+char* strreplace(char* origString, const char* searchString, const char* replaceString) {
+	char* searchIndex = origString;
+
+	while (strstr(searchIndex, searchString) != NULL) {
+		searchIndex = strstr(searchIndex, searchString);
+		*searchIndex = '\0';
+
+		origString = realloc(origString, strlen(origString) + strlen(replaceString) + 1);
+		strcat(origString, replaceString);
+		searchIndex += strlen(searchString);
+
+		origString = realloc(origString, strlen(origString) + strlen(searchIndex) + 1);
+		strcat(origString, searchIndex);
+	}
+
+	return origString;
+}

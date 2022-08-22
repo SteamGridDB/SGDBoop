@@ -476,7 +476,15 @@ struct nonSteamApp* getSourceMods(const char* type)
 		size_t len_reg = 0;
 		size_t read_reg;
 
-		fp_reg = fopen("~/.steam/steam/registry.vdf", "r");
+		// Fix reg value for registry.vdf
+		char regValueTemp[50];
+		strcpy(regValueTemp, "\"");
+		strcat(regValueTemp, regValue);
+		strcpy(regValue, regValueTemp);
+
+		char* regFileLocation = getSteamBaseDir();
+		strcat(regFileLocation, "/../registry.vdf");
+		fp_reg = fopen(regFileLocation, "r");
 
 		// If the file doesn't exist, skip this function
 		if (fp_reg == NULL) {
@@ -490,7 +498,8 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 			if (extractedValue > 0) {
 				extractedValue += strlen(regValue) + 1;
-				extractedValue = strstr(extractedValue, "\"");
+				extractedValue = strstr(extractedValue, "\"") + 1;
+
 				unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
 				*extractedValueEnd = '\0';
 
@@ -499,6 +508,9 @@ struct nonSteamApp* getSourceMods(const char* type)
 				break;
 			}
 		}
+
+		// Replace "//" with "\"
+		strreplace(sourceModPath, "\\\\", "/");
 	}
 
 	if (!foundValue) {
