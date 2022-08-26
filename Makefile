@@ -26,7 +26,7 @@ else
 .PHONY: install
 install: build
 	install -Dm755 linux-release/SGDBoop -t $(DESTDIR)$(PREFIX)/bin
-	desktop-file-install com.steamgriddb.SGDBoop.desktop --rebuild-mime-info-cache
+	desktop-file-install linux-release/com.steamgriddb.SGDBoop.desktop --rebuild-mime-info-cache
 	@su - $(SUDO_USER)
 	xdg-mime default com.steamgriddb.SGDBoop.desktop x-scheme-handler/sgdb
 endif
