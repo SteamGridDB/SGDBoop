@@ -790,23 +790,18 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 					((uint64_t)intBytes[3] << 0);
 			}
 
-			// If an old appid is required, calculate it
+			// Calculate old app id
+			*nameEndChar = '\0';
+			*exeEndChar = '\0';
+
+			strcpy(parsingAppid, exeStartChar);
+			strcat(parsingAppid, nameStartChar);
+			appid_old = crcFast(parsingAppid, strlen(parsingAppid));
 			if (appid == 0) {
-
-				*nameEndChar = '\0';
-				*exeEndChar = '\0';
-
-				strcpy(parsingAppid, exeStartChar);
-				strcat(parsingAppid, nameStartChar);
-				appid_old = crcFast(parsingAppid, strlen(parsingAppid));
-				if (appid == 0) {
-					appid = appid_old;
-				}
-
-				*exeEndChar = '\x03';
+				appid = appid_old;
 			}
 
-			*nameEndChar = '\0'; // Close name string
+			*exeEndChar = '\x03';
 
 			// Do math magic. Valve pls fix
 			appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
@@ -919,7 +914,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 }
 
 // Create a symlink for a file that has the old nonsteam appid format
-void createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
+int createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 	char linkPath[MAX_PATH];
 	char targetPath[MAX_PATH];
 
@@ -931,7 +926,7 @@ void createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 	strcat(targetPath, appData->appid);
 	strcat(targetPath, ".jpg");
 
-	int result = symlink(targetPath, linkPath);
+	return symlink(targetPath, linkPath);
 }
 
 // Update shortcuts.vdf with the new icon value
@@ -1173,10 +1168,13 @@ int main(int argc, char** argv)
 
 			// Non-Steam specific actions
 			if (nonSteamAppData) {
-
 				// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
 				if (strcmp(asset_type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-					createOldIdSymlink(nonSteamAppData, steamDestDir);
+					if (!createOldIdSymlink(nonSteamAppData, steamDestDir)) {
+						char message[500];
+						sprintf(message, "Could not create symlink for file: %s%s.jpg. If you're having issues, try deleting this file and apply the asset again.", steamDestDir, nonSteamAppData->appid_old);
+						logError(message, 99);
+					}
 				}
 
 				// If the asset is a non-Steam icon, add the 
