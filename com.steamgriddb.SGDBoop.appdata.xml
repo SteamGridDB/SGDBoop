@@ -10,6 +10,27 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.1" date="2022-08-26">
+      <description>
+        <p>v1.2.1:</p>
+        <ul>
+          <li>Fix Big Picture Mode assets not loading for Non-Steam shortcuts.</li>
+        </ul>
+        <p>v1.2.0:</p>
+        <ul>
+          <li>Ability to change icons for non-Steam apps.</li>
+          <li>Support for Source and GoldSrc mods.</li>
+          <li>Boop default Steam assets onto non-Steam apps.</li>
+          <li>Added "sgdb://boop/test" to test if SGDBoop is launching from the browser properly.</li>
+          <li>Functionality to apply multiple assets to a single app at once.</li>
+          <li>Error logging.</li>
+          <li>Fixed bugs.</li>
+        </ul>
+      </description>
+      <issues>
+        <issue type="generic" url="https://github.com/SteamGridDB/SGDBoop/issues/22">#22</issue>
+      </issues>
+    </release>
     <release version="1.2.0" date="2022-08-22">
       <description>
         <ul>
@@ -51,7 +72,10 @@
       A tool that automatically applies assets from SteamGridDB directly to your Steam library, removing the need to download and set them manually.
     </p>
     <p>
-      Note: SGDBoop is intended to be executed via sgdb:// links on SteamGridDB. Continue setup from "Step 2" here: https://www.steamgriddb.com/boop
+      Note: SGDBoop is intended to be executed via sgdb:// links on SteamGridDB.
+    </p>
+    <p>
+      Continue setup from "Step 2" here: https://www.steamgriddb.com/boop
     </p>
   </description>
   <branding>
