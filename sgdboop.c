@@ -596,15 +596,17 @@ struct nonSteamApp* getSourceMods(const char* type)
 			continue;
 		}
 
-		while ((read = readLine(&line, &len, fp)) != -1) {
+		int foundGameKey = 0;
 
+		while ((read = readLine(&line, &len, fp)) != -1) {
 
 			// If line contains the "game" key, get the mod's name and create the struct entry
 			unsigned char* commentChar = strstr(line, "//");
 			unsigned char* nameStartChar = strstr(line, "game");
 			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
 
-			if (nameStartChar > 0 && commentChar == 0) {
+			// Make sure to first capture the "game" key, properly
+			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && (nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
 
 				nameStartChar = strstr(line, "\"") + 1;
 				unsigned char* nameEndChar = strstr(nameStartChar, "\"");
@@ -633,13 +635,15 @@ struct nonSteamApp* getSourceMods(const char* type)
 					strcpy(sourceModsNames[modsCount], nameStartChar);
 					strcpy(sourceModsDirs[modsCount], dir->d_name);
 
+					foundGameKey = 1;
+
 					if (goldsource) {
 						modsCount++;
 						break;
 					}
 				}
 			}
-			else if (steamAppIdStartChar > 0) {
+			else if (steamAppIdStartChar > 0 && foundGameKey) {
 
 				// If line contains the "SteamAppId" key, get the mod's name and create the struct entry
 				unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
