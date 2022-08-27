@@ -10,6 +10,17 @@
   <project_license>MIT</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.2" date="2022-08-27">
+      <description>
+        <p>v1.2.2:</p>
+        <ul>
+          <li>Fix crash when scanning for some source mods.</li>
+        </ul>
+      </description>
+      <issues>
+        <issue type="generic" url="https://github.com/SteamGridDB/SGDBoop/issues/24">#24</issue>
+      </issues>
+    </release>
     <release version="1.2.1" date="2022-08-26">
       <description>
         <p>v1.2.1:</p>
