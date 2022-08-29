@@ -12,7 +12,6 @@
   <releases>
     <release version="1.2.3" date="2022-08-29">
       <description>
-        <p>v1.2.3:</p>
         <ul>
           <li><b>Final Release (unless something major breaks).</b></li>
           <li>Added API User Agent.</li>
@@ -21,14 +20,10 @@
     </release>
     <release version="1.2.2" date="2022-08-27">
       <description>
-        <p>v1.2.2:</p>
         <ul>
           <li>Fix crash when scanning for some source mods.</li>
         </ul>
       </description>
-      <issues>
-        <issue type="generic" url="https://github.com/SteamGridDB/SGDBoop/issues/24">#24</issue>
-      </issues>
     </release>
     <release version="1.2.1" date="2022-08-26">
       <description>
@@ -47,9 +42,6 @@
           <li>Fixed bugs.</li>
         </ul>
       </description>
-      <issues>
-        <issue type="generic" url="https://github.com/SteamGridDB/SGDBoop/issues/22">#22</issue>
-      </issues>
     </release>
     <release version="1.2.0" date="2022-08-22">
       <description>
