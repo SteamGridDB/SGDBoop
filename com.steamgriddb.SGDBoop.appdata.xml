@@ -7,9 +7,18 @@
     <category>Utility</category>
   </categories>
   <metadata_license>FSFAP</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>CC-BY-NC-SA-4.0</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.3" date="2022-08-29">
+      <description>
+        <p>v1.2.3:</p>
+        <ul>
+          <li><b>Final Release (unless something major breaks).</b></li>
+          <li>Added API User Agent.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.2" date="2022-08-27">
       <description>
         <p>v1.2.2:</p>
