@@ -52,7 +52,7 @@ In case you want to completely remove the app from your system:
     `yay -S sgdboop-bin`
 </details>
 
-### Once installed, head over to https://www.steamgriddb.com/boop to enable the "**BOOP**" button!
+### Once installed, head over to https://www.steamgriddb.com/boop to enable the "**BOOP**" buttons!
 
 # Credits
 <a href="https://github.com/SteamGridDB/SGDBoop/graphs/contributors">
@@ -60,4 +60,4 @@ In case you want to completely remove the app from your system:
 </a>
 
 # License
-[MIT](LICENSE)
+[CC-BY-NC-SA-4.0](LICENSE)
