@@ -83,13 +83,19 @@ void logError(const char* error, const int errorCode)
 		strcat(logFilepath, "sgdboop_error.log");
 	}
 	else {
-		if (getenv("XDG_STATE_HOME") != NULL) {
+		if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
 			strcpy(logFilepath, getenv("XDG_STATE_HOME"));
 		}
 		else {
 			strcpy(logFilepath, getenv("HOME"));
 			strcat(logFilepath, "/.local/state");
 		}
+
+		// Try creating folder
+		if (access(logFilepath, 0) != 0) {
+			mkdir(logFilepath, 0700);
+		}
+
 		strcat(logFilepath, "/sgdboop_error.log");
 	}
 
@@ -100,6 +106,7 @@ void logError(const char* error, const int errorCode)
 	if (logFile) {
 		fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
 		fclose(logFile);
+		printf("Created logfile in %s\n", logFilepath);
 	}
 }
 
@@ -609,7 +616,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
 
 			// Make sure to first capture the "game" key, properly
-			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && (nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
+			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
 
 				nameStartChar = strstr(line, "\"") + 1;
 				unsigned char* nameEndChar = strstr(nameStartChar, "\"");
