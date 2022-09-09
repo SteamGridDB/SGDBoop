@@ -61,16 +61,10 @@ void loadIupIcon() {
 	IupSetGlobal("ICON", "SGDBOOPIMAGE");
 }
 
-// Log error messages
-void logError(const char* error, const int errorCode)
-{
-	time_t now = time(0);
-	time_t rawtime;
-	struct tm* timeinfo;
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+// Get logfile path
+char* getLogFilepath() {
+	char* logFilepath = malloc(MAX_PATH);
 
-	char* logFilepath = malloc(100);
 	if (OS_Windows) {
 		WCHAR path[MAX_PATH];
 		GetModuleFileName(NULL, (LPSTR)path, MAX_PATH);
@@ -98,6 +92,20 @@ void logError(const char* error, const int errorCode)
 
 		strcat(logFilepath, "/sgdboop_error.log");
 	}
+
+	return logFilepath;
+}
+
+// Log error messages
+void logError(const char* error, const int errorCode)
+{
+	time_t now = time(0);
+	time_t rawtime;
+	struct tm* timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	char* logFilepath = getLogFilepath();
 
 	FILE* logFile = fopen(logFilepath, "a");
 	if (logFile == NULL) {
@@ -273,6 +281,10 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 
 // Create the SGDB URI protocol
 int createURIprotocol() {
+
+	char* logFilepath = getLogFilepath();
+	char* popupMessage = malloc(1000);
+
 	if (OS_Windows) {
 		char cwd[MAX_PATH];
 		GetModuleFileName(NULL, cwd, MAX_PATH);
@@ -298,13 +310,19 @@ int createURIprotocol() {
 
 		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
-		IupMessage("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		strcat(popupMessage, "\n\nLog file path: ");
+		strcat(popupMessage, logFilepath);
+		IupMessage("SGDBoop Information", popupMessage);
 		free(regeditCommand);
 		return 0;
 	}
 	else {
 		// Do nothing on linux
-		IupMessage("SGDBoop Information", "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+		strcat(popupMessage, "\n\nLog file path: ");
+		strcat(popupMessage, logFilepath);
+		IupMessage("SGDBoop Information", popupMessage);
 		return 1;
 	}
 }

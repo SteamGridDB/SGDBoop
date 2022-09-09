@@ -7,7 +7,7 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --share=network
-  - --filesystem=~/.local/state/sgdboop_error.log:rw
+  - --filesystem=~/.local/state:create
   # Used for reading SteamID of user
   - --filesystem=~/.steam/steam/config/loginusers.vdf:ro
   # For saving custom images and reading shortcuts.vdf for Non-Steam games. shortcuts.vdf is also written to for non-Steam icons.
