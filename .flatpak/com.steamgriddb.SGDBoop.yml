@@ -15,10 +15,12 @@ finish-args:
   - --filesystem=~/.steam/steam/appcache/librarycache:rw
   # Read paths to Source/GoldSrc mods
   - --filesystem=~/.steam/registry.vdf:ro
-  # Default path to sourcemods folder
+  # Default paths to source/goldsrc mod dirs
   - --filesystem=~/.steam/steam/steamapps/sourcemods:ro
-  # Default path to half-life folder
   - --filesystem=~/.steam/steam/steamapps/common/Half-Life:ro
+  # Default paths to mods but on an Steam Deck SD card
+  - --filesystem=/run/media/mmcblk0p1/steamapps/sourcemods:ro
+  - --filesystem=/run/media/mmcblk0p1/steamapps/common/Half-Life:ro
   # Same thing as above but for Flatpak Steam
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/config/loginusers.vdf:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/userdata:rw
