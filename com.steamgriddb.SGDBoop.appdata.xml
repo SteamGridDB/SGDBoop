@@ -10,6 +10,15 @@
   <project_license>CC-BY-NC-SA-4.0</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.5" date="2022-09-09">
+      <description>
+        <ul>
+          <li>Fixed logging for Flatpak version.</li>
+          <li>Showing logfile location when launched normally (via double click or through Discover).</li>
+          <li>(Steam Deck) Mods stored in the MicroSD card are now properly accessed.</li>
+        </ul>
+      </description>
+    </release>-
     <release version="1.2.4" date="2022-09-08">
       <description>
         <ul>
