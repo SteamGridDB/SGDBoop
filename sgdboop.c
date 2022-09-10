@@ -323,7 +323,7 @@ int createURIprotocol() {
 		strcat(popupMessage, "\n\nLog file path: ");
 		strcat(popupMessage, logFilepath);
 		IupMessage("SGDBoop Information", popupMessage);
-		return 1;
+		return 0;
 	}
 }
 
