@@ -5,6 +5,7 @@
   <launchable type="desktop-id">com.steamgriddb.SGDBoop.desktop</launchable>
   <categories>
     <category>Utility</category>
+    <category>Game</category>
   </categories>
   <metadata_license>FSFAP</metadata_license>
   <project_license>CC-BY-NC-SA-4.0</project_license>
@@ -124,4 +125,11 @@
   <url type="bugtracker">https://github.com/SteamGridDB/SGDBoop/issues</url>
   <url type="donation">https://www.patreon.com/steamgriddb</url>
   <developer_name>SteamGridDB</developer_name>
+  <keywords>
+    <keyword translate="no">Steam</keyword>
+    <keyword translate="no">SteamGridDB</keyword>
+    <keyword translate="no">Deck</keyword>
+    <keyword>Artwork</keyword>
+    <keyword>Cover</keyword>
+  </keywords>
 </component>
