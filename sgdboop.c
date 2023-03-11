@@ -764,6 +764,7 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 		fseek(fp, 0, SEEK_SET);
 
 		unsigned char* fileContent = malloc(filesize + 1);
+		unsigned char* realFileContent = malloc(filesize + 1);
 		unsigned int currentFileByte = 0;
 
 		// Load the vdf in memory and fix string-related issues
@@ -775,6 +776,7 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 				else {
 					fileContent[currentFileByte] = buf[i];
 				}
+				realFileContent[currentFileByte] = buf[i];
 				currentFileByte++;
 			}
 		}
@@ -802,14 +804,15 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 			unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
 			unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
-			unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+			unsigned char* tagsPtr = strstr(appidPtr, "\x03tags\x03");
+			unsigned char* appBlockEndPtr = strstr(tagsPtr, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
 			while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
 				appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
 			}
 
 			// If appid was found in this app block
 			if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
-				unsigned char* hexBytes = appidPtr + 7;
+				unsigned char* hexBytes = realFileContent + (appidPtr - fileContent) + 7;
 				intBytes[0] = *(hexBytes + 3);
 				intBytes[1] = *(hexBytes + 2);
 				intBytes[2] = *(hexBytes + 1);
