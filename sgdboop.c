@@ -290,11 +290,11 @@ int createURIprotocol() {
 		GetModuleFileName(NULL, cwd, MAX_PATH);
 
 		char* regeditCommand = malloc(2028);
-		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
+		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
 		strcat(regeditCommand, cwd);
 		strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
 
-		int ret_val = system("REG ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
+		int ret_val = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val != 0) {
 			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
 			free(regeditCommand);
@@ -303,12 +303,12 @@ int createURIprotocol() {
 
 		system(regeditCommand);
 
-		strcpy(regeditCommand, "REG ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
+		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
 		strcat(regeditCommand, cwd);
 		strcat(regeditCommand, "\" /f");
 		system(regeditCommand);
 
-		system("REG ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
+		system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
 
 		strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 		strcat(popupMessage, "\n\nLog file path: ");
@@ -331,7 +331,7 @@ int createURIprotocol() {
 int deleteURIprotocol() {
 	if (OS_Windows) {
 
-		int ret_val = system("REG DELETE HKCR\\sgdb /f");
+		int ret_val = system("C:\\Windows\\System32\\reg.exe DELETE HKCR\\sgdb /f");
 		if (ret_val != 0) {
 			system("cls");
 			printf("Please run this program as Administrator!\n");
@@ -358,7 +358,7 @@ char* getSteamBaseDir() {
 	int foundValue = 0;
 
 	if (OS_Windows) {
-		FILE* terminal = _popen("reg query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
+		FILE* terminal = _popen("C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
 		char buf[256];
 		while (fgets(buf, sizeof(buf), terminal) != 0) {
 			if (strstr(buf, "SteamPath")) {
