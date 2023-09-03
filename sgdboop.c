@@ -804,8 +804,7 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 			unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
 
 			unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
-			unsigned char* tagsPtr = strstr(appidPtr, "\x03tags\x03");
-			unsigned char* appBlockEndPtr = strstr(tagsPtr, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+			unsigned char* appBlockEndPtr = strstr(parsingChar, "\x08") + 1; // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
 			while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
 				appBlockEndPtr = strstr(appBlockEndPtr, "\x08") + 1;
 			}
