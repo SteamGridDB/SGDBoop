@@ -145,6 +145,9 @@
       <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
     </PreBuildEvent>
     <ClCompile />
+    <Manifest>
+      <AdditionalManifestFiles>SGDBoop.exe.manifest</AdditionalManifestFiles>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="crc.c" />
