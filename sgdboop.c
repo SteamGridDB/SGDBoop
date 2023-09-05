@@ -294,9 +294,14 @@ int createURIprotocol() {
 		strcat(regeditCommand, cwd);
 		strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
 
-		int ret_val = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
-		if (ret_val != 0) {
-			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+		int ret_val_reg = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
+		if (ret_val_reg != 0) {
+			int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command");
+			if (ret_val_exists != 0) {
+				IupMessage("SGDBoop Error", "SGDBoop is already registered! Head over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
+			} else {
+				IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+			}
 			free(regeditCommand);
 			return 1;
 		}
