@@ -296,11 +296,11 @@ int createURIprotocol() {
 
 		int ret_val_reg = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
 		if (ret_val_reg != 0) {
-			int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command");
+			int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command /ve");
 			if (ret_val_exists != 0) {
-				IupMessage("SGDBoop Error", "SGDBoop is already registered! Head over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
-			} else {
 				IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+			} else {
+				IupMessage("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
 			}
 			free(regeditCommand);
 			return 1;
@@ -502,7 +502,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 		// Windows: Query registry
 		char regeditCommand[200];
 
-		strcpy(regeditCommand, "reg query HKCU\\Software\\Valve\\Steam /v ");
+		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v ");
 		strcat(regeditCommand, regValue);
 
 		FILE* terminal = _popen(regeditCommand, "r");
