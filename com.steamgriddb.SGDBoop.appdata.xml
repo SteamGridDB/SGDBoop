@@ -11,6 +11,24 @@
   <project_license>CC-BY-NC-SA-4.0</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.2.8" date="2023-06-09">
+      <description>
+        <ul>
+          <li>Fix booping non-Steam shortcuts not working for some users.</li>
+          <li>Windows: Fix registering not working if users System32 was not in the PATH.</li>
+          <li>Windows: Added Visual Style manifest for better looking UI.</li>
+          <li>Windows: Make error message shown when executing without privs clearer.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.2.7" date="2023-03-11">
+      <description>
+        <ul>
+          <li>Update appdata to make it easier to find by @pktiuk in #46</li>
+          <li>Appid may contain special bytes. by @Xzonn in #50</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.6" date="2022-09-10">
       <description>
         <ul>
