@@ -744,6 +744,176 @@ struct nonSteamApp* getSourceMods(const char* type)
 	return sourceMods;
 }
 
+// Parse appinfo file and return a pointer to a list of structs containing the app data
+struct nonSteamApp* getSteamApps(int includeMods) {
+
+	char* shortcutsVdfPath = getSteamBaseDir();
+	char* steamid = getMostRecentUser(shortcutsVdfPath);
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
+	crcInit();
+
+	// Get the shortcuts.vdf file
+	//strcat(shortcutsVdfPath, "/userdata/");
+	//strcat(shortcutsVdfPath, steamid);
+	strcat(shortcutsVdfPath, "/appcache/appinfo.vdf");
+
+	// Parse the file
+	FILE* fp;
+	unsigned char buf[2] = { 0 };
+	size_t bytes = 0;
+	size_t read = sizeof buf;
+	fp = fopen(shortcutsVdfPath, "rb");
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_END);
+		size_t filesize = ftell(fp) + 2;
+		fseek(fp, 0, SEEK_SET);
+
+		unsigned char* fileContent = malloc(filesize + 1);
+		unsigned char* realFileContent = malloc(filesize + 1);
+		unsigned int currentFileByte = 0;
+
+		// Load the vdf in memory and fix string-related issues
+		while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+			for (int i = 0; i < sizeof buf; i++) {
+				if (buf[i] == 0x00) {
+					fileContent[currentFileByte] = 0x03;
+				}
+				else {
+					fileContent[currentFileByte] = buf[i];
+				}
+				realFileContent[currentFileByte] = buf[i];
+				currentFileByte++;
+			}
+		}
+		fileContent[filesize - 2] = '\x08';
+		fileContent[filesize - 1] = '\x03';
+		fileContent[filesize] = '\0';
+
+		fclose(fp);
+		unsigned char* parsingChar = fileContent;
+		unsigned char parsingAppid[512];
+		uint64_t intBytes[4];
+
+		// Parse the vdf content
+		while (strstr_i(parsingChar, "appinfo") > 0) {
+
+			uint64_t appid_old = 0;
+			uint64_t appid = 0;
+
+			// Find app name
+			unsigned char* nameStartChar = strstr_i(parsingChar, "\001name") + 6;
+			unsigned char* nameEndChar = strstr(nameStartChar, "\x03");
+
+			// Find app type
+			unsigned char* typeStartChar = strstr_i(parsingChar, "\001type") + 6;
+			unsigned char* typeEndChar = strstr(typeStartChar, "\x03");
+
+			// Find exe path
+			unsigned char* exeStartChar = strstr_i(parsingChar, "\001exe") + 5;
+			unsigned char* exeEndChar = strstr(exeStartChar, "\x03");
+
+			unsigned char* appidPtr = strstr_i(parsingChar, "\002appid");
+			unsigned char* appBlockEndPtr = strstr(parsingChar + 9, "appinfo\x03"); // gcc fucks with optimization on strstr for 2 consecutive hex values. DON'T EDIT THIS.
+			if (appBlockEndPtr == NULL) {
+				appBlockEndPtr = parsingChar + strlen(parsingChar);
+			}
+			//while (*appBlockEndPtr != 0x03 && *appBlockEndPtr != 0x00) {
+				//appBlockEndPtr = strstr(appBlockEndPtr, "appinfo\x03") + 9;
+			//}
+
+			*typeEndChar = '\0';
+			if (strcmp(typeStartChar, "game") != 0 && strcmp(typeStartChar, "Game") != 0) {
+				// Move parser to end of app data
+				*typeEndChar = '\x03';
+				*nameEndChar = 0x03; // Revert name string to prevent string-related problems
+				parsingChar = appBlockEndPtr;
+				continue;
+			}
+			*typeEndChar = '\x03';
+
+
+			// If appid was found in this app block
+			if (appidPtr > 0 && appidPtr < appBlockEndPtr) {
+				unsigned char* hexBytes = realFileContent + (appidPtr - fileContent) + 7;
+				intBytes[0] = *(hexBytes + 3);
+				intBytes[1] = *(hexBytes + 2);
+				intBytes[2] = *(hexBytes + 1);
+				intBytes[3] = *(hexBytes + 0);
+
+				appid =
+					((uint64_t)intBytes[0] << 24) |
+					((uint64_t)intBytes[1] << 16) |
+					((uint64_t)intBytes[2] << 8) |
+					((uint64_t)intBytes[3] << 0);
+			}
+
+			// Calculate old app id
+			*nameEndChar = '\0';
+			*exeEndChar = '\0';
+
+			strcpy(parsingAppid, exeStartChar);
+			strcat(parsingAppid, nameStartChar);
+			appid_old = crcFast(parsingAppid, strlen(parsingAppid));
+			if (appid == 0) {
+				appid = appid_old;
+			}
+
+			*exeEndChar = '\x03';
+
+			// Do math magic. Valve pls fix
+			appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
+			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
+			sprintf(apps[_nonSteamAppsCount].appid_old, "%" PRIu64, appid_old);
+
+			// Add the values to struct
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
+			sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
+			strcpy(apps[_nonSteamAppsCount].type, "nonsteam-app");
+			_nonSteamAppsCount++;
+			printf("%d %s %lu\n", _nonSteamAppsCount, nameStartChar, (unsigned long)appid);
+
+			// Move parser to end of app data
+			*nameEndChar = 0x03; // Revert name string to prevent string-related problems
+			parsingChar = appBlockEndPtr + 2;
+		}
+	}
+
+	// Add source (and goldsource) mods
+	if (includeMods) {
+		struct nonSteamApp* sourceMods = getSourceMods("source");
+		struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
+		for (int i = 0; i < _sourceModsCount; i++) {
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
+			strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
+			strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
+			strcpy(apps[_nonSteamAppsCount].type, "source-mod");
+
+			_nonSteamAppsCount++;
+		}
+		for (int i = 0; i < _goldSourceModsCount; i++) {
+			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
+			strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
+			strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
+			strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
+			strcpy(apps[_nonSteamAppsCount].type, "goldsource-mod");
+
+			_nonSteamAppsCount++;
+		}
+	}
+
+
+	// Exit with an error if no non-steam apps were found
+	if (_nonSteamAppsCount < 1) {
+		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
+		free(apps);
+		exitWithError("Could not find any non-Steam apps in the according file.", 91);
+	}
+
+	return apps;
+}
+
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
 struct nonSteamApp* getNonSteamApps(int includeMods) {
 
