@@ -390,8 +390,7 @@ char* getSteamBaseDir() {
 		strcpy(steamBaseDir, getenv("HOME"));
 
 		char steamFlatpakDir[MAX_PATH];
-		strcpy(steamFlatpakDir, getenv("HOME"));
-		strcat(steamFlatpakDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
+		strcpy(steamFlatpakDir, "/var/lib/flatpak/app/com.valvesoftware.Steam");
 
 		// If flatpaked Steam is installed
 		if (access(steamFlatpakDir, 0) == 0) {
