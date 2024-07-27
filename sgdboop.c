@@ -9,7 +9,7 @@
 #include <dirent.h>
 #include "string-helpers.h"
 #include "curl-helper.h"
-#include "include/iup.h"
+#include "gui-helper.h"
 #include "crc.h"
 
 
@@ -50,16 +50,6 @@ int _nonSteamAppsCount = 0;
 int _sourceModsCount = 0;
 int _goldSourceModsCount = 0;
 int _apiReturnedLines = 0;
-
-// Add an icon to IUP windows
-void loadIupIcon() {
-	unsigned char image_data[256] = { 0 };
-
-	Ihandle* sgdboop_image = IupImage(16, 16, image_data);
-	IupSetAttribute(sgdboop_image, "0", "BGCOLOR");
-	IupSetHandle("SGDBOOPIMAGE", sgdboop_image);
-	IupSetGlobal("ICON", "SGDBOOPIMAGE");
-}
 
 // Get logfile path
 char* getLogFilepath() {
@@ -170,10 +160,8 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			strcat(message, s.ptr);
 
 			if (startsWith(s.ptr, "error-")) {
-				message = strreplace(message, "error-", " ");
-				IupOpen(NULL, NULL);
-				loadIupIcon();
-				IupMessage("SGDBoop Error", message);
+				strreplace(message, "error-", " ");
+				ShowMessageBox("SGDBoop Error", message);
 			}
 			exitWithError(message, (int)http_code);
 		}
@@ -297,9 +285,9 @@ int createURIprotocol() {
 	if (ret_val_reg != 0) {
 		int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command /ve");
 		if (ret_val_exists != 0) {
-			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+			ShowMessageBox("SGDBoop Error", "Please run this program as Administrator to register it!\n");
 		} else {
-			IupMessage("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
+			ShowMessageBox("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
 		}
 		free(regeditCommand);
 		return 1;
@@ -317,7 +305,7 @@ int createURIprotocol() {
 	strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 	strcat(popupMessage, "\n\nLog file path: ");
 	strcat(popupMessage, logFilepath);
-	IupMessage("SGDBoop Information", popupMessage);
+	ShowMessageBox("SGDBoop Information", popupMessage);
 	free(regeditCommand);
 	return 0;
 #else
@@ -325,7 +313,7 @@ int createURIprotocol() {
 	strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 	strcat(popupMessage, "\n\nLog file path: ");
 	strcat(popupMessage, logFilepath);
-	IupMessage("SGDBoop Information", popupMessage);
+	ShowMessageBox("SGDBoop Information", popupMessage);
 	return 0;
 #endif
 }
@@ -905,7 +893,7 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 
 	// Exit with an error if no non-steam apps were found
 	if (_nonSteamAppsCount < 1) {
-		IupMessage("SGDBoop Error", "Could not find any non-Steam apps.");
+		ShowMessageBox("SGDBoop Error", "Could not find any non-Steam apps.");
 		free(apps);
 		exitWithError("Could not find any non-Steam apps in the according file.", 91);
 	}
@@ -941,7 +929,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 		}
 	}
 
-	int retval = IupListDialog(1, title, _nonSteamAppsCount, (const char**)values, selection, strlen(title) - 12, 14, NULL);
+	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)values, selection);
 
 	// Exit when user clicks cancel
 	if (retval < 0) {
@@ -1111,10 +1099,6 @@ int main(int argc, char** argv)
 #endif
 
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
-		// Enable IUP GUI
-		IupOpen(&argc, &argv);
-		loadIupIcon();
-
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
 			exitWithError("Could not create URI protocol.", 80);
@@ -1141,9 +1125,7 @@ int main(int argc, char** argv)
 		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
 
 			// Enable IUP GUI and show a message
-			IupOpen(&argc, &argv);
-			loadIupIcon();
-			IupMessage("SGDBoop Test", "^_^/   SGDBoop is working!   \\^_^");
+			ShowMessageBox("SGDBoop Test", "^_^/   SGDBoop is working!   \\^_^");
 
 			return 0;
 		}
@@ -1186,11 +1168,6 @@ int main(int argc, char** argv)
 
 				// Select app once
 				if (line < 1) {
-
-					// Enable IUP GUI
-					IupOpen(&argc, &argv);
-					loadIupIcon();
-
 					// Do not include mods in the dropdown list if the only asset selected was an icon
 					int includeMods = 1;
 					if (strcmp(types, "icon") == 0 || (strcmp(types, "steam") == 0 && strcmp(asset_type, "icon") == 0)) {
