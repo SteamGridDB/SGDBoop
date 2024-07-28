@@ -15,8 +15,7 @@ int startsWith(const char*, const char*);
 int compareStrings(const void*, const void*);
 
 // Case insensitive strstr
-// https://stackoverflow.com/a/56513982/16642426
-char* strstr_i(const char*, const char*);
+char* strstr_i(char*, const char*);
 
 // Replace a substring in a string with another string
 char* strreplace(char*, const char*, const char*);
