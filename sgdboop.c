@@ -171,7 +171,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			strcat(message, s.ptr);
 
 			if (startsWith(s.ptr, "error-")) {
-				strreplace(message, "error-", " ");
+				message = strreplace(message, "error-", " ");
 				IupOpen(NULL, NULL);
 				loadIupIcon();
 				IupMessage("SGDBoop Error", message);
@@ -537,7 +537,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 		strcpy(regValue, regValueTemp);
 
 		char* regFileLocation = getSteamBaseDir();
-		strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
+		regFileLocation = strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
 		fp_reg = fopen(regFileLocation, "r");
 
 		// If the file doesn't exist, skip this function
@@ -568,7 +568,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 		// Replace "//" with "\"
 		if (foundValue) {
-			strreplace(sourceModPath, "\\\\", "/");
+			sourceModPath = strreplace(sourceModPath, "\\\\", "/");
 		}
 	}
 
