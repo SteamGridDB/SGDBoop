@@ -79,18 +79,17 @@ int compareStrings(const void* p1, const void* p2)
 }
 
 // Case insensitive strstr
-// https://stackoverflow.com/a/56513982/16642426
-char* strstr_i(const char* p1, const char* p2) {
-	for (;; p1++) {
+char* strstr_i(char* p1, const char* p2) {
+	while (*p1) {
 		for (size_t i = 0;; i++) {
 			if (p2[i] == '\0')
 				return (char*)p1;
-			if (tolower((unsigned char)p1[i]) != tolower((unsigned char)p2[i]))
+			if (tolower(p1[i]) != tolower(p2[i]))
 				break;
 		}
-		if (*p1 == '\0')
-			return 0;
+		++p1;
 	}
+	return 0;
 }
 
 // Replace a substring in a string with another string
