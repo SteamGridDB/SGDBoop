@@ -423,9 +423,9 @@ char* getMostRecentUser(char* steamBaseDir) {
 	size_t len = 0;
 	size_t read;
 	fp = fopen(steamConfigFile, "r");
+	free(steamConfigFile);
 	if (fp == NULL) {
 		free(steamid);
-		free(steamConfigFile);
 		exitWithError("Couldn't find logged in user", 95);
 	}
 
@@ -470,6 +470,7 @@ char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
 		strcat(steamBaseDir, "/userdata/");
 		strcat(steamBaseDir, steamid);
 		strcat(steamBaseDir, "/config/grid/");
+		free(steamid);
 	}
 
 	return steamBaseDir;
@@ -544,9 +545,12 @@ struct nonSteamApp* getSourceMods(const char* type)
 		if (fp_reg == NULL) {
 			char errorMessage[500];
 			sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
+			free(regFileLocation);
 			logError(errorMessage, 96);
 			return NULL;
 		}
+
+		free(regFileLocation);
 
 		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
 
@@ -565,6 +569,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 				break;
 			}
 		}
+		free(line_reg);
 
 		// Replace "//" with "\"
 		if (foundValue) {
@@ -587,6 +592,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 	{
 		char errorMessage[500];
 		sprintf(errorMessage, "Could not read directory %s", sourceModPath);
+		free(sourceModPath);
 		logError(errorMessage, 98);
 		return NULL;
 	}
@@ -706,6 +712,9 @@ struct nonSteamApp* getSourceMods(const char* type)
 			free(line);
 	}
 	closedir(dr);
+	free(filepath);
+
+	free(sourceModPath);
 
 	if (goldsource) {
 		_goldSourceModsCount = modsCount;
@@ -738,7 +747,14 @@ struct nonSteamApp* getSourceMods(const char* type)
 		sprintf(sourceMods[i].appid, "%lu", 2147483649 + hex_index);
 		strcpy(sourceMods[i].name, sourceModsNames[i]);
 		sprintf(sourceMods[i].appid_old, "%" PRIu64, appid_old);
+
+		free(sourceModsNames[i]);
+		free(sourceModsDirs[i]);
 	}
+
+	free(sourceModsNames);
+	free(sourceModsSteamAppIds);
+	free(sourceModsDirs);
 
 	return sourceMods;
 }
@@ -756,18 +772,22 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 	strcat(shortcutsVdfPath, steamid);
 	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
 
+	free(steamid);
+
 	// Parse the file
 	FILE* fp;
 	unsigned char buf[2] = { 0 };
 	size_t bytes = 0;
 	size_t read = sizeof buf;
 	fp = fopen(shortcutsVdfPath, "rb");
+	free(shortcutsVdfPath);
 	if (fp != NULL) {
 		fseek(fp, 0L, SEEK_END);
 		size_t filesize = ftell(fp) + 2;
 		fseek(fp, 0, SEEK_SET);
 
 		unsigned char* fileContent = malloc(filesize + 1);
+		memset(fileContent, '\xAB', filesize);
 		unsigned char* realFileContent = malloc(filesize + 1);
 		unsigned int currentFileByte = 0;
 
@@ -857,6 +877,9 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 			*nameEndChar = 0x03; // Revert name string to prevent string-related problems
 			parsingChar = appBlockEndPtr + 2;
 		}
+
+		free(fileContent);
+		free(realFileContent);
 	}
 
 	// Add source (and goldsource) mods
@@ -881,6 +904,8 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 
 			_nonSteamAppsCount++;
 		}
+		free(sourceMods);
+		free(goldSourceMods);
 	}
 
 
@@ -978,14 +1003,16 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	strcat(shortcutsVdfPath, steamid);
 	strcat(shortcutsVdfPath, "/config/shortcuts.vdf");
 
+	free(steamid);
+
 	// Parse the file
 	FILE* fp;
 	unsigned char buf[1] = { 0 };
 	size_t bytes = 0;
 	size_t read = sizeof buf;
 	fp = fopen(shortcutsVdfPath, "rb");
+	free(shortcutsVdfPath);
 	if (fp == NULL) {
-		free(shortcutsVdfPath);
 		exitWithError("Shortcuts vdf could not be found.", 93);
 	}
 	fseek(fp, 0L, SEEK_END);
@@ -1221,6 +1248,8 @@ int main(int argc, char** argv)
 				}
 
 			}
+
+			free(steamDestDir);
 		}
 
 		free(nonSteamAppData);
