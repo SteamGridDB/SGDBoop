@@ -814,7 +814,7 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 		uint64_t intBytes[4];
 
 		// Parse the vdf content
-		while (strstr_i(parsingChar, "appname") > 0) {
+		while ((parsingChar - fileContent) < filesize && strstr_i(parsingChar, "appname") > 0) {
 
 			uint64_t appid_old = 0;
 			uint64_t appid = 0;
