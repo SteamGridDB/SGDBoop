@@ -60,4 +60,4 @@ In case you want to completely remove the app from your system:
 </a>
 
 # License
-[CC-BY-NC-SA-4.0](LICENSE)
+[zlib](LICENSE)
