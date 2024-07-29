@@ -8,7 +8,7 @@
     <category>Game</category>
   </categories>
   <metadata_license>FSFAP</metadata_license>
-  <project_license>CC-BY-NC-SA-4.0</project_license>
+  <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
     <release version="1.2.8" date="2023-06-09">
