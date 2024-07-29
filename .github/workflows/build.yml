@@ -22,10 +22,10 @@ jobs:
       uses: microsoft/setup-msbuild@v1.3
 
     - name: run-vcpkg
-      uses: lukka/run-vcpkg@v10
+      uses: lukka/run-vcpkg@v11
       with:
         runVcpkgInstall: true
-        vcpkgGitCommitId: 'a7b6122f6b6504d16d96117336a0562693579933'
+        vcpkgGitCommitId: '5b1214315250939257ef5d62ecdcbca18cf4fb1c'
         
     - name: Integrate vcpkg
       run: vcpkg integrate install
