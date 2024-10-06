@@ -7,13 +7,14 @@ ifdef FLATPAK_ID
     USER_LIB_PATH := /app/lib
 endif
 
+PKG_CONFIG ?= pkg-config
+
 .PHONY: all
 all: build
 
 .PHONY: build
 build:
-	install -Dm644 lib/linux/libiup.so -t $(USER_LIB_PATH)
-	gcc sgdboop.c curl-helper.c string-helpers.c crc.c -liup -lcurl -o linux-release/SGDBoop $(LDFLAGS)
+	$(CC) -g sgdboop.c curl-helper.c gui-helper-gtk.c string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs gtk+-3.0 libcurl) -o linux-release/SGDBoop $(LDFLAGS)
 
 ifdef FLATPAK_ID
 .PHONY: install
