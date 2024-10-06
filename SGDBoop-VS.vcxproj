@@ -66,9 +66,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <LibraryPath>C:\Users\mnsxx\source\repos\SGDBoop\lib;$(LibraryPath)</LibraryPath>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <CopyLocalProjectReference>false</CopyLocalProjectReference>
@@ -76,9 +78,11 @@
     <PublicIncludeDirectories>
     </PublicIncludeDirectories>
     <LibraryPath>$(SolutionDir)\lib\windows;$(LibraryPath)</LibraryPath>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(SolutionDir)\lib\windows;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -95,7 +99,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>freetype6.lib;ftgl.lib;iup.lib;iupcd.lib;iupcontrols.lib;iupfiledlg.lib;iupgl.lib;iupglcontrols.lib;iupim.lib;iupimglib.lib;iupole.lib;iuptuio.lib;iupweb.lib;iup_mglplot.lib;iup_plot.lib;iup_scintilla.lib;zlib1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype6.lib;ftgl.lib;zlib1.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -121,10 +125,11 @@
     <Link>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
-      <AdditionalDependencies>freetype6.lib;ftgl.lib;iup.lib;iupcd.lib;iupcontrols.lib;iupfiledlg.lib;iupgl.lib;iupglcontrols.lib;iupim.lib;iupimglib.lib;iupole.lib;iuptuio.lib;iupweb.lib;iup_mglplot.lib;iup_plot.lib;iup_scintilla.lib;zlib1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype6.lib;ftgl.lib;zlib1.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
@@ -136,13 +141,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>freetype6.lib;ftgl.lib;iup.lib;iupcd.lib;iupcontrols.lib;iupfiledlg.lib;iupgl.lib;iupglcontrols.lib;iupim.lib;iupimglib.lib;iupole.lib;iupstub.lib;iuptuio.lib;iupweb.lib;iup_mglplot.lib;iup_plot.lib;iup_scintilla.lib;zlib1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freetype6.lib;ftgl.lib;zlib1.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>copy /Y "$(SolutionDir)lib\windows\iup.dll" "$(TargetDir)iup.dll" </Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
     <ClCompile />
     <Manifest>
@@ -152,12 +159,14 @@
   <ItemGroup>
     <ClCompile Include="crc.c" />
     <ClCompile Include="curl-helper.c" />
+    <ClCompile Include="gui-helper-win.c" />
     <ClCompile Include="sgdboop.c" />
     <ClCompile Include="string-helpers.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="crc.h" />
     <ClInclude Include="curl-helper.h" />
+    <ClInclude Include="gui-helper.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="string-helpers.h" />
   </ItemGroup>

@@ -52,6 +52,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST  "SGDBoop.exe.manifest"
 IDI_ICON1               ICON                    "res\\icon.ico"
 
 #endif    // English (United States) resources
@@ -68,4 +69,3 @@ IDI_ICON1               ICON                    "res\\icon.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
