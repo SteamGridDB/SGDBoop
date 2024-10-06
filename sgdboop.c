@@ -65,33 +65,32 @@ void loadIupIcon() {
 char* getLogFilepath() {
 	char* logFilepath = malloc(MAX_PATH);
 
-	if (OS_Windows) {
-		WCHAR path[MAX_PATH];
-		GetModuleFileName(NULL, (LPSTR)path, MAX_PATH);
-		char* filename = (char*)path;
-		while (strstr(filename, "\\") > 0) {
-			filename = strstr(filename, "\\") + 1;
-		}
-		*filename = '\0';
-		strcpy(logFilepath, (const char*)path);
-		strcat(logFilepath, "sgdboop_error.log");
+#if OS_Windows
+	WCHAR path[MAX_PATH];
+	GetModuleFileName(NULL, (LPSTR)path, MAX_PATH);
+	char* filename = (char*)path;
+	while (strstr(filename, "\\") > 0) {
+		filename = strstr(filename, "\\") + 1;
+	}
+	*filename = '\0';
+	strcpy(logFilepath, (const char*)path);
+	strcat(logFilepath, "sgdboop_error.log");
+#else
+	if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
+		strcpy(logFilepath, getenv("XDG_STATE_HOME"));
 	}
 	else {
-		if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
-			strcpy(logFilepath, getenv("XDG_STATE_HOME"));
-		}
-		else {
-			strcpy(logFilepath, getenv("HOME"));
-			strcat(logFilepath, "/.local/state");
-		}
-
-		// Try creating folder
-		if (access(logFilepath, 0) != 0) {
-			mkdir(logFilepath, 0700);
-		}
-
-		strcat(logFilepath, "/sgdboop_error.log");
+		strcpy(logFilepath, getenv("HOME"));
+		strcat(logFilepath, "/.local/state");
 	}
+
+	// Try creating folder
+	if (access(logFilepath, 0) != 0) {
+		mkdir(logFilepath, 0700);
+	}
+
+	strcat(logFilepath, "/sgdboop_error.log");
+#endif
 
 	return logFilepath;
 }
@@ -285,75 +284,72 @@ int createURIprotocol() {
 	char* logFilepath = getLogFilepath();
 	char* popupMessage = malloc(1000);
 
-	if (OS_Windows) {
-		char cwd[MAX_PATH];
-		GetModuleFileName(NULL, cwd, MAX_PATH);
+#if OS_Windows
+	char cwd[MAX_PATH];
+	GetModuleFileName(NULL, cwd, MAX_PATH);
 
-		char* regeditCommand = malloc(2028);
-		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
-		strcat(regeditCommand, cwd);
-		strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
+	char* regeditCommand = malloc(2028);
+	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
+	strcat(regeditCommand, cwd);
+	strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
 
-		int ret_val_reg = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
-		if (ret_val_reg != 0) {
-			int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command /ve");
-			if (ret_val_exists != 0) {
-				IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
-			} else {
-				IupMessage("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
-			}
-			free(regeditCommand);
-			return 1;
+	int ret_val_reg = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
+	if (ret_val_reg != 0) {
+		int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command /ve");
+		if (ret_val_exists != 0) {
+			IupMessage("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+		} else {
+			IupMessage("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
 		}
-
-		system(regeditCommand);
-
-		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
-		strcat(regeditCommand, cwd);
-		strcat(regeditCommand, "\" /f");
-		system(regeditCommand);
-
-		system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
-
-		strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
-		strcat(popupMessage, "\n\nLog file path: ");
-		strcat(popupMessage, logFilepath);
-		IupMessage("SGDBoop Information", popupMessage);
 		free(regeditCommand);
-		return 0;
+		return 1;
 	}
-	else {
-		// Do nothing on linux
-		strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
-		strcat(popupMessage, "\n\nLog file path: ");
-		strcat(popupMessage, logFilepath);
-		IupMessage("SGDBoop Information", popupMessage);
-		return 0;
-	}
+
+	system(regeditCommand);
+
+	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
+	strcat(regeditCommand, cwd);
+	strcat(regeditCommand, "\" /f");
+	system(regeditCommand);
+
+	system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
+
+	strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+	strcat(popupMessage, "\n\nLog file path: ");
+	strcat(popupMessage, logFilepath);
+	IupMessage("SGDBoop Information", popupMessage);
+	free(regeditCommand);
+	return 0;
+#else
+	// Do nothing on linux
+	strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+	strcat(popupMessage, "\n\nLog file path: ");
+	strcat(popupMessage, logFilepath);
+	IupMessage("SGDBoop Information", popupMessage);
+	return 0;
+#endif
 }
 
 // Delete the SGDB URI protocol
 int deleteURIprotocol() {
-	if (OS_Windows) {
-
-		int ret_val = system("C:\\Windows\\System32\\reg.exe DELETE HKCR\\sgdb /f");
-		if (ret_val != 0) {
-			system("cls");
-			printf("Please run this program as Administrator!\n");
-			system("pause");
-			return 1;
-		}
-
+#if OS_Windows
+	int ret_val = system("C:\\Windows\\System32\\reg.exe DELETE HKCR\\sgdb /f");
+	if (ret_val != 0) {
 		system("cls");
-		printf("Program unregistered successfully!\n");
+		printf("Please run this program as Administrator!\n");
 		system("pause");
-		return 0;
-	}
-	else {
-		// Do nothing on linux
-		printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
 		return 1;
 	}
+
+	system("cls");
+	printf("Program unregistered successfully!\n");
+	system("pause");
+	return 0;
+#else
+	// Do nothing on linux
+	printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
+	return 1;
+#endif
 }
 
 // Get Steam's base directory
@@ -362,45 +358,44 @@ char* getSteamBaseDir() {
 	char* steamBaseDir = malloc(MAX_PATH);
 	int foundValue = 0;
 
-	if (OS_Windows) {
-		FILE* terminal = _popen("C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
-		char buf[256];
-		while (fgets(buf, sizeof(buf), terminal) != 0) {
-			if (strstr(buf, "SteamPath")) {
-				char* extractedValue = strstr(buf, "REG_SZ") + 10;
-				strcpy(steamBaseDir, extractedValue);
-				foundValue = 1;
-			}
+#if OS_Windows
+	FILE* terminal = _popen("C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
+	char buf[256];
+	while (fgets(buf, sizeof(buf), terminal) != 0) {
+		if (strstr(buf, "SteamPath")) {
+			char* extractedValue = strstr(buf, "REG_SZ") + 10;
+			strcpy(steamBaseDir, extractedValue);
+			foundValue = 1;
 		}
-		_pclose(terminal);
-		if (!foundValue) {
-			free(steamBaseDir);
-			return NULL;
-		}
+	}
+	_pclose(terminal);
+	if (!foundValue) {
+		free(steamBaseDir);
+		return NULL;
+	}
 
-		int steamDirLength = strlen(steamBaseDir);
-		for (int i = 0; i < steamDirLength; i++) {
-			if (steamBaseDir[i] == '\n') {
-				steamBaseDir[i] = '\0';
-			}
+	int steamDirLength = strlen(steamBaseDir);
+	for (int i = 0; i < steamDirLength; i++) {
+		if (steamBaseDir[i] == '\n') {
+			steamBaseDir[i] = '\0';
 		}
+	}
+#else
+	foundValue = 1;
+	strcpy(steamBaseDir, getenv("HOME"));
+
+	char steamFlatpakDir[MAX_PATH];
+	strcpy(steamFlatpakDir, "/var/lib/flatpak/app/com.valvesoftware.Steam");
+
+	// If flatpaked Steam is installed
+	if (access(steamFlatpakDir, 0) == 0) {
+		strcat(steamBaseDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
 	}
 	else {
-		foundValue = 1;
-		strcpy(steamBaseDir, getenv("HOME"));
-
-		char steamFlatpakDir[MAX_PATH];
-		strcpy(steamFlatpakDir, "/var/lib/flatpak/app/com.valvesoftware.Steam");
-
-		// If flatpaked Steam is installed
-		if (access(steamFlatpakDir, 0) == 0) {
-			strcat(steamBaseDir, "/.var/app/com.valvesoftware.Steam/data/Steam");
-		}
-		else {
-			// Steam installed on host
-			strcat(steamBaseDir, "/.steam/steam");
-		}
+		// Steam installed on host
+		strcat(steamBaseDir, "/.steam/steam");
 	}
+#endif
 
 	if (foundValue < 1) {
 		free(steamBaseDir);
@@ -498,84 +493,83 @@ struct nonSteamApp* getSourceMods(const char* type)
 		strcpy(regValue, "SourceModInstallPath");
 	}
 
-	if (OS_Windows) {
-		// Windows: Query registry
-		char regeditCommand[200];
+#if OS_Windows
+	// Windows: Query registry
+	char regeditCommand[200];
 
-		strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v ");
-		strcat(regeditCommand, regValue);
+	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v ");
+	strcat(regeditCommand, regValue);
 
-		FILE* terminal = _popen(regeditCommand, "r");
-		char buf[256];
-		while (fgets(buf, sizeof(buf), terminal) != 0) {
-			if (strstr(buf, regValue)) {
-				char* extractedValue = strstr(buf, "REG_SZ") + 10;
-				strcpy(sourceModPath, extractedValue);
-				foundValue = 1;
-			}
-		}
-		_pclose(terminal);
-
-
-		int sourceModDirLength = strlen(sourceModPath);
-		for (int i = 0; i < sourceModDirLength; i++) {
-			if (sourceModPath[i] == '\n') {
-				sourceModPath[i] = '\0';
-			}
+	FILE* terminal = _popen(regeditCommand, "r");
+	char buf[256];
+	while (fgets(buf, sizeof(buf), terminal) != 0) {
+		if (strstr(buf, regValue)) {
+			char* extractedValue = strstr(buf, "REG_SZ") + 10;
+			strcpy(sourceModPath, extractedValue);
+			foundValue = 1;
 		}
 	}
-	else {
-		// Linux: Read registry.vdf
-		FILE* fp_reg;
-		char* line_reg = NULL;
-		size_t len_reg = 0;
-		size_t read_reg;
+	_pclose(terminal);
 
-		// Fix reg value for registry.vdf
-		char regValueTemp[50];
-		strcpy(regValueTemp, "\"");
-		strcat(regValueTemp, regValue);
-		strcpy(regValue, regValueTemp);
 
-		char* regFileLocation = getSteamBaseDir();
-		regFileLocation = strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
-		fp_reg = fopen(regFileLocation, "r");
-
-		// If the file doesn't exist, skip this function
-		if (fp_reg == NULL) {
-			char errorMessage[500];
-			sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
-			free(regFileLocation);
-			logError(errorMessage, 96);
-			return NULL;
+	int sourceModDirLength = strlen(sourceModPath);
+	for (int i = 0; i < sourceModDirLength; i++) {
+		if (sourceModPath[i] == '\n') {
+			sourceModPath[i] = '\0';
 		}
+	}
+#else
+	// Linux: Read registry.vdf
+	FILE* fp_reg;
+	char* line_reg = NULL;
+	size_t len_reg = 0;
+	size_t read_reg;
 
+	// Fix reg value for registry.vdf
+	char regValueTemp[50];
+	strcpy(regValueTemp, "\"");
+	strcat(regValueTemp, regValue);
+	strcpy(regValue, regValueTemp);
+
+	char* regFileLocation = getSteamBaseDir();
+	regFileLocation = strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
+	fp_reg = fopen(regFileLocation, "r");
+
+	// If the file doesn't exist, skip this function
+	if (fp_reg == NULL) {
+		char errorMessage[500];
+		sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
 		free(regFileLocation);
+		logError(errorMessage, 96);
+		return NULL;
+	}
 
-		while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
+	free(regFileLocation);
 
-			// If line contains the regvalue's key, capture the value
-			unsigned char* extractedValue = strstr(line_reg, regValue);
+	while ((read_reg = readLine(&line_reg, &len_reg, fp_reg)) != -1) {
 
-			if (extractedValue > 0) {
-				extractedValue += strlen(regValue) + 1;
-				extractedValue = strstr(extractedValue, "\"") + 1;
+		// If line contains the regvalue's key, capture the value
+		unsigned char* extractedValue = strstr(line_reg, regValue);
 
-				unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
-				*extractedValueEnd = '\0';
+		if (extractedValue > 0) {
+			extractedValue += strlen(regValue) + 1;
+			extractedValue = strstr(extractedValue, "\"") + 1;
 
-				strcpy(sourceModPath, extractedValue);
-				foundValue = 1;
-				break;
-			}
-		}
-		free(line_reg);
+			unsigned char* extractedValueEnd = strstr(extractedValue, "\"");
+			*extractedValueEnd = '\0';
 
-		// Replace "//" with "\"
-		if (foundValue) {
-			sourceModPath = strreplace(sourceModPath, "\\\\", "/");
+			strcpy(sourceModPath, extractedValue);
+			foundValue = 1;
+			break;
 		}
 	}
+	free(line_reg);
+
+	// Replace "//" with "\"
+	if (foundValue) {
+		sourceModPath = strreplace(sourceModPath, "\\\\", "/");
+	}
+#endif 
 
 	if (!foundValue) {
 		char errorMessage[500];
@@ -1112,9 +1106,9 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 int main(int argc, char** argv)
 {
 	// If no arguments were given, register the program
-	if (OS_Windows) {
+#if OS_Windows
 		MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
-	}
+#endif
 
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Enable IUP GUI
