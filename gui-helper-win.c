@@ -101,7 +101,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 
 int ShowMessageBox(const char* title, const char* message)
 {
-	return MessageBox(NULL, title, message, MB_OK | MB_ICONEXCLAMATION);
+	return MessageBox(NULL, message, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
 int SelectionDialog(const char* title, int count, const char** list, int selection)
