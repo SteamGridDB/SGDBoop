@@ -5,15 +5,15 @@ int ShowMessageBox(const char* title, const char* message)
 {
 	gtk_init(NULL, NULL);
 
-	//return SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title, message, NULL);
-	GtkWidget* dialog = gtk_message_dialog_new (
+	GtkWidget* dialog = gtk_message_dialog_new(
 		NULL,
 		0,
 		GTK_MESSAGE_ERROR,
 		GTK_BUTTONS_OK,
+		"%s",
 		message
 	);
-	gtk_window_set_title(GTK_WINDOW(dialog), "title");
+	gtk_window_set_title(GTK_WINDOW(dialog), title);
 
 	g_signal_connect_swapped (
 		dialog,
