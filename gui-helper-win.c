@@ -4,7 +4,7 @@
 #include "gui-helper.h"
 #include "resource.h"
 
-const char szClass[] = "winWindowClass";
+const wchar_t* szClass = "winWindowClass";
 
 #define IDC_BUTTON_OK 101
 #define IDC_BUTTON_CANCEL 102
@@ -94,6 +94,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 		case WM_DESTROY:
 			PostQuitMessage(WM_QUIT);
 			break;
+		case WM_CLOSE:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProcW(hWnd, Msg, wParam, lParam);
 	}
 
 	return DefWindowProc(hWnd, Msg, wParam, lParam);
@@ -104,7 +109,7 @@ int ShowMessageBox(const char* title, const char* message)
 	return MessageBox(NULL, message, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
-int SelectionDialog(const char* title, int count, const char** list, int selection)
+int SelectionDialog(const wchar_t* title, int count, const char** list, int selection)
 {
 	InitCommonControls();
 
@@ -113,8 +118,8 @@ int SelectionDialog(const char* title, int count, const char** list, int selecti
 
 	HINSTANCE hInstance = GetModuleHandle(NULL);
 
-	WNDCLASSEXA wc;
-	wc.cbSize = sizeof(WNDCLASSEXA);
+	WNDCLASSEXW wc;
+	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = WndProc;
 	wc.cbClsExtra = 0;
@@ -137,12 +142,12 @@ int SelectionDialog(const char* title, int count, const char** list, int selecti
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = szClass;
 
-	RegisterClassExA(&wc);
+	RegisterClassExW(&wc);
 
-	hWnd = CreateWindowExA(
+	hWnd = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
 		szClass,
-		title,
+		ConvertStringToUnicode(title),
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		454, 388,
@@ -152,7 +157,7 @@ int SelectionDialog(const char* title, int count, const char** list, int selecti
 
 	for (int i = 0; i < count; ++i)
 	{
-		SendMessage(hWndList, LB_ADDSTRING, (WPARAM)NULL, (LPARAM)list[i]);
+		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)ConvertStringToUnicode(list[i]));
 	}
 
 	ShowWindow(hWnd, SW_SHOWNORMAL);
@@ -164,4 +169,59 @@ int SelectionDialog(const char* title, int count, const char** list, int selecti
 	}
 
 	return selected_index;
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+{
+	WNDCLASSEXW wc = { 0 };
+	wc.cbSize = sizeof(wc);
+	wc.lpfnWndProc = WndProc;
+	wc.hInstance = hInstance;
+	wc.lpszClassName = szClass;
+
+	if (!RegisterClassExW(&wc))
+	{
+		MessageBoxW(NULL, L"RegisterClassExW failed", L"Error", MB_OK);
+		return 1;
+	}
+
+	HWND hWnd = CreateWindowExW(
+		WS_EX_CLIENTEDGE,
+		szClass,
+		L"Test Title",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		500, 300,
+		NULL, NULL,
+		hInstance, NULL
+	);
+
+	if (!hWnd)
+	{
+		MessageBoxW(NULL, L"CreateWindowExW failed", L"Error", MB_OK);
+		return 1;
+	}
+
+	// Set the title again for test.
+	SetWindowTextW(hWnd, L"2223");
+
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+
+	MSG msg = { 0 };
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return 0;
+}
+
+// Convert ANSI string to unicode (char to widechar)
+wchar_t * ConvertStringToUnicode(char * string)
+{
+	int unicodeStringLength = MultiByteToWideChar(CP_UTF8, 0, string, -1, NULL, 0);
+	wchar_t * unicodeString = malloc(unicodeStringLength * sizeof(wchar_t));
+	MultiByteToWideChar(CP_UTF8, 0, string, -1, unicodeString, unicodeStringLength);
+	return unicodeString;
 }

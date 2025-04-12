@@ -3,5 +3,6 @@
 
 int ShowMessageBox(const char* title, const char* message);
 int SelectionDialog(const char* title, int count, const char** list, int selection);
+wchar_t * ConvertStringToUnicode(char * string);
 
 #endif
