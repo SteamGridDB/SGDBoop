@@ -38,7 +38,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
       
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: win64-release
         path: |
@@ -46,7 +46,7 @@ jobs:
           x64/Release/libcurl.dll
           x64/Release/zlib1.dll
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: win64-debug
         path: x64/Debug/*
@@ -67,7 +67,7 @@ jobs:
     - name: Build
       run: sudo make
       
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: linux-build
         path: linux-release/*
