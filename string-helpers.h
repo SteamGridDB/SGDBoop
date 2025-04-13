@@ -19,3 +19,7 @@ char* strstr_i(char*, const char*);
 
 // Replace a substring in a string with another string
 char* strreplace(char*, const char*, const char*);
+
+// Case-insensitive string comparison
+// https://stackoverflow.com/a/5820991/16642426
+int strcmp_i(const char*, const char*);

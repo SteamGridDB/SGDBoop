@@ -1,4 +1,4 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "string-helpers.h"
@@ -116,4 +116,16 @@ char* strreplace(char* origString, const char* searchString, const char* replace
 	strcpy(origString, tmpString);
 	free(tmpString);
 	return origString;
+}
+
+// Case-insensitive string comparison
+// https://stackoverflow.com/a/5820991/16642426
+int strcmp_i(const char * a, const char * b)
+{
+	for (;; a++, b++)
+	{
+		int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+		if (d != 0 || !*a)
+			return d;
+	}
 }

@@ -914,21 +914,25 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 
 	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
+	// Create title string
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
 	strcat(title, sgdbName);
 	strcat(title, "'");
 
+	// Sort values
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
 
-	int selection = 0;
+	// Find matching value
+	int selection = -1;
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		if (strcmp(values[i], sgdbName) == 0) {
-			selection = i + 1;
+		if (strcmp_i(values[i], sgdbName) == 0) {
+			selection = i;
 			break;
 		}
 	}
 
+	// Create selection dialog
 	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)values, selection);
 
 	// Exit when user clicks cancel

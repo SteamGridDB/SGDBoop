@@ -160,6 +160,8 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int sele
 		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)ConvertStringToUnicode(list[i]));
 	}
 
+	SendMessageW(hWndList, LB_SETCURSEL, selection, NULL);
+
 	ShowWindow(hWnd, SW_SHOWNORMAL);
 
 	while (GetMessage(&Msg, NULL, 0, 0))
