@@ -144,10 +144,12 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int sele
 
 	RegisterClassExW(&wc);
 
+	wchar_t* unicodeTitle = ConvertStringToUnicode(title);
+
 	hWnd = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
 		szClass,
-		ConvertStringToUnicode(title),
+		unicodeTitle,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		454, 388,
@@ -155,9 +157,13 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int sele
 		hInstance, NULL
 	);
 
+	free(unicodeTitle);
+
 	for (int i = 0; i < count; ++i)
 	{
-		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)ConvertStringToUnicode(list[i]));
+		wchar_t * unicodeGameName = ConvertStringToUnicode(list[i]);
+		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)unicodeGameName);
+		free(unicodeGameName);
 	}
 
 	SendMessageW(hWndList, LB_SETCURSEL, selection, NULL);
