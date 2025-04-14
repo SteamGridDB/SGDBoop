@@ -113,6 +113,29 @@ void exitWithError(const char* error, const int errorCode) {
 	exit(errorCode);
 }
 
+void cleanupOldAssetFiles(const char* finalPath)
+{
+	// Copy final path and strip the extension
+	char basePath[1024];
+	strcpy(basePath, finalPath);
+
+	char* dot = strrchr(basePath, '.');
+	if (dot) *dot = '\0';
+
+	const char* extensions[] = { ".jpg", ".jpeg", ".png" }; // Steam only reads from these
+
+	for (int i = 0; i < sizeof(extensions) / sizeof(extensions[0]); i++) {
+		char tempPath[1060];
+		strcpy(tempPath, basePath);
+		strcat(tempPath, extensions[i]);
+
+		if (strcmp(tempPath, finalPath) != 0) {
+			remove(tempPath);
+		}
+	}
+}
+
+
 // Call the BOOP API
 char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 {
@@ -214,37 +237,46 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	strcat(outfilename, app_id);
 	if (strcmp(type, "hero") == 0) {
 		// Hero
-		strcat(outfilename, "_hero.jpg");
+		strcat(outfilename, "_hero");
 	}
 	else if (strcmp(type, "logo") == 0) {
 		// Logo
-		strcat(outfilename, "_logo.jpg");
+		strcat(outfilename, "_logo");
 	}
 	else if (strcmp(type, "grid") == 0 && strcmp(orientation, "p") == 0) {
 		// Vertical grid
-		strcat(outfilename, "p.jpg");
+		strcat(outfilename, "p");
 	}
 	else if (strcmp(type, "grid") == 0) {
-		// Horizontal grid
-		strcat(outfilename, ".jpg");
+		// Horizontal grid has no suffix
 	}
 	else if (strcmp(type, "icon") == 0) {
 		// Icon
-		if (nonSteamAppData == NULL) {
-			// Inject Steam's cache
-			strcat(outfilename, "_icon.jpg");
+		strcat(outfilename, "_icon");
+	}
+
+	// Always save as jpg if icon and replacing default Steam
+	if (nonSteamAppData == NULL && strcmp(type, "icon") == 0) {
+		strcat(outfilename, ".jpg");
+	}
+	else {
+		// Save as original file extension
+		const char* dot = strrchr(url, '.');
+		if (dot) {
+			char ext[16] = { 0 };
+			strncpy(ext, dot, sizeof(ext) - 1);
+			char* qmark = strchr(ext, '?');
+			if (qmark) *qmark = '\0'; // cut at '?'
+			strcat(outfilename, ext);
 		}
 		else {
-			// Add new icon to grid folder using its original extension
-			strcat(outfilename, "_icon.");
-			char* extension = strstr(url, ".com/") + 5;
-			extension = strstr(extension, ".") + 1;
-			strcat(outfilename, extension);
+			strcat(outfilename, ".jpg"); // fallback
 		}
 	}
 
 	curl = curl_easy_init();
 	if (curl && outfilename != 0) {
+		cleanupOldAssetFiles(outfilename);
 		fp = fopen(outfilename, "wb");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
@@ -915,7 +947,7 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
 	// Create title string
-	#if defined(_WIN32) || defined(WIN32)
+	#if OS_Windows
 	wchar_t* sgdbNameW = ConvertStringToUnicode(sgdbName);
 	wchar_t* title = malloc((40 + wcslen(sgdbNameW)) * sizeof(wchar_t));
 
@@ -1218,7 +1250,7 @@ int main(int argc, char** argv)
 
 			// Non-Steam specific actions
 			if (nonSteamAppData) {
-				// If the asset is a non-Steam icon, add the 
+				// If the asset is a non-Steam icon, add the path to the vdf
 				if (strcmp(asset_type, "icon") == 0) {
 					updateVdf(nonSteamAppData, outfilename);
 				}
