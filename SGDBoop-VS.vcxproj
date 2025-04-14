@@ -23,6 +23,7 @@
     <ProjectGuid>{6534F5BD-C8B8-43C9-BFC4-239DC9627045}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>SGDBoop</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -126,6 +127,7 @@
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <AdditionalDependencies>freetype6.lib;ftgl.lib;zlib1.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -146,6 +148,7 @@
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>freetype6.lib;ftgl.lib;zlib1.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
     </Link>
     <PreBuildEvent>
       <Command>

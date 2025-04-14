@@ -519,6 +519,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v ");
 	strcat(regeditCommand, regValue);
+	strcat(regeditCommand, " 2>nul"); // Suppress error output
 
 	FILE* terminal = _popen(regeditCommand, "r");
 	char buf[256];
@@ -592,10 +593,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 #endif 
 
 	if (!foundValue) {
-		char errorMessage[500];
-		sprintf(errorMessage, "Could not find %s (either in regedit or registry.vdf)", regValue);
-		logError(errorMessage, 97);
-		free(sourceModPath);
+		// Allow this to fail silently, the registry key doesn't always need to be there
 		return NULL;
 	}
 
@@ -1136,14 +1134,17 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	}
 }
 
-// Main
-int main(int argc, char** argv)
-{
-	// If no arguments were given, register the program
+// Build as Windows app on windows instead of console
 #if OS_Windows
-		MoveWindow(GetConsoleWindow(), -3000, -3000, 0, 0, FALSE);
+static int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
+{
+	int argc = __argc;
+	char** argv = __argv;
+#else
+int main(int argc, char** argv)
 #endif
 
+	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
