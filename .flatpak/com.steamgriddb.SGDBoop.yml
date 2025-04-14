@@ -1,11 +1,12 @@
 app-id: com.steamgriddb.SGDBoop
 runtime: org.freedesktop.Platform
-runtime-version: '21.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 command: SGDBoop
 finish-args:
   - --socket=wayland
   - --socket=fallback-x11
+  - --share=ipc
   - --share=network
   - --filesystem=~/.local/state:create
   # Used for reading SteamID of user
@@ -19,9 +20,8 @@ finish-args:
   # Default paths to source/goldsrc mod dirs
   - --filesystem=~/.steam/steam/steamapps/sourcemods:ro
   - --filesystem=~/.steam/steam/steamapps/common/Half-Life:ro
-  # Default paths to mods but on an Steam Deck SD card
-  - --filesystem=/run/media/mmcblk0p1/steamapps/sourcemods:ro
-  - --filesystem=/run/media/mmcblk0p1/steamapps/common/Half-Life:ro
+  # Read paths to mods on a Steam Deck SD card
+  - --filesystem=/run/media:ro
   # Same thing as above but for Flatpak Steam
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/config/loginusers.vdf:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/userdata:rw
