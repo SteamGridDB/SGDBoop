@@ -915,10 +915,20 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
 	// Create title string
+	#if defined(_WIN32) || defined(WIN32)
+	wchar_t* sgdbNameW = ConvertStringToUnicode(sgdbName);
+	wchar_t* title = malloc((40 + wcslen(sgdbNameW)) * sizeof(wchar_t));
+
+	wcscpy(title, L"SGDBoop: Pick a game for '");
+	wcscat(title, sgdbNameW);
+	wcscat(title, L"'");
+	free(sgdbNameW);
+	#else
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
 	strcat(title, sgdbName);
 	strcat(title, "'");
+	#endif
 
 	// Sort values
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);

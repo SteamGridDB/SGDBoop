@@ -4,7 +4,7 @@
 #include "gui-helper.h"
 #include "resource.h"
 
-const wchar_t* szClass = "winWindowClass";
+const wchar_t* szClass = L"winWindowClass";
 
 #define IDC_BUTTON_OK 101
 #define IDC_BUTTON_CANCEL 102
@@ -144,7 +144,7 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int sele
 
 	RegisterClassExW(&wc);
 
-	wchar_t* unicodeTitle = ConvertStringToUnicode(title);
+	const wchar_t* unicodeTitle = title;
 
 	hWnd = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
@@ -157,16 +157,16 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int sele
 		hInstance, NULL
 	);
 
-	free(unicodeTitle);
+	//free(unicodeTitle);
 
 	for (int i = 0; i < count; ++i)
 	{
 		wchar_t * unicodeGameName = ConvertStringToUnicode(list[i]);
-		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)unicodeGameName);
+		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)(LPCWSTR)unicodeGameName);
 		free(unicodeGameName);
 	}
 
-	SendMessageW(hWndList, LB_SETCURSEL, selection, NULL);
+	SendMessageW(hWndList, LB_SETCURSEL, selection, 0);
 
 	ShowWindow(hWnd, SW_SHOWNORMAL);
 
@@ -226,10 +226,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 }
 
 // Convert ANSI string to unicode (char to widechar)
-wchar_t * ConvertStringToUnicode(char * string)
+wchar_t* ConvertStringToUnicode(const char* string)
 {
 	int unicodeStringLength = MultiByteToWideChar(CP_UTF8, 0, string, -1, NULL, 0);
-	wchar_t * unicodeString = malloc(unicodeStringLength * sizeof(wchar_t));
+	wchar_t* unicodeString = malloc(unicodeStringLength * sizeof(wchar_t));
 	MultiByteToWideChar(CP_UTF8, 0, string, -1, unicodeString, unicodeStringLength);
 	return unicodeString;
 }
