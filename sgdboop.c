@@ -1218,17 +1218,8 @@ int main(int argc, char** argv)
 
 			// Non-Steam specific actions
 			if (nonSteamAppData) {
-				// If the asset is a non-Steam horizontal grid, create a symlink (for back. compat.)
-				if (strcmp(asset_type, "grid") == 0 && strcmp(orientation, "l") == 0) {
-					if (!createOldIdSymlink(nonSteamAppData, steamDestDir)) {
-						char message[500];
-						sprintf(message, "Could not create symlink for file: %s%s.jpg. If you're having issues, try deleting this file and apply the asset again.", steamDestDir, nonSteamAppData->appid_old);
-						logError(message, 99);
-					}
-				}
-
 				// If the asset is a non-Steam icon, add the 
-				else if (strcmp(asset_type, "icon") == 0) {
+				if (strcmp(asset_type, "icon") == 0) {
 					updateVdf(nonSteamAppData, outfilename);
 				}
 
