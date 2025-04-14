@@ -1142,6 +1142,7 @@ static int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, 
 	char** argv = __argv;
 #else
 int main(int argc, char** argv)
+{
 #endif
 
 	// If no arguments were given, register the program
