@@ -34,8 +34,8 @@ int symlink(char* a, char* b) {
 }
 #endif
 
-#define API_VERSION "2"
-#define API_USER_AGENT "SGDBoop/v1.2.3"
+#define API_VERSION "3"
+#define API_USER_AGENT "SGDBoop/v1.3.0"
 
 typedef struct nonSteamApp
 {
@@ -196,7 +196,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			char* endLine = strstr(line, "\r");
 			*endLine = '\0';
 
-			valuesArray[_apiReturnedLines] = malloc((sizeof(char**)) * 1000);
+			valuesArray[_apiReturnedLines] = malloc((sizeof(char**)) * 2048);
 			valuesArray[_apiReturnedLines][0] = line;
 			valuesArray[_apiReturnedLines][1] = strstr(line, ",");
 			*valuesArray[_apiReturnedLines][1] = '\0';
@@ -207,6 +207,9 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			valuesArray[_apiReturnedLines][3] = strstr(valuesArray[_apiReturnedLines][2], ",");
 			*valuesArray[_apiReturnedLines][3] = '\0';
 			valuesArray[_apiReturnedLines][3] += 1;
+			valuesArray[_apiReturnedLines][4] = strstr(valuesArray[_apiReturnedLines][3], ",");
+			*valuesArray[_apiReturnedLines][4] = '\0';
+			valuesArray[_apiReturnedLines][4] += 1;
 
 			line = endLine + 1;
 
@@ -222,7 +225,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 }
 
 // Download an asset file
-char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* destinationDir, struct nonSteamApp* nonSteamAppData)
+char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* asset_hash, char* destinationDir, struct nonSteamApp* nonSteamAppData)
 {
 	// Try creating folder
 	if (access(destinationDir, 0) != 0) {
@@ -252,8 +255,16 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		// Horizontal grid has no suffix
 	}
 	else if (strcmp(type, "icon") == 0) {
-		// Icon
-		strcat(outfilename, "_icon");
+
+		if (nonSteamAppData != NULL) {
+			// Add _icon to nonsteam icons
+			strcat(outfilename, "_icon");
+
+		} else {
+			// Use hash for official Steam icons
+			strcat(outfilename, "/");
+			strcat(outfilename, asset_hash);
+		}
 	}
 
 	// Always save as jpg if icon and replacing default Steam
@@ -1053,7 +1064,6 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 	size_t bytes = 0;
 	size_t read = sizeof buf;
 	fp = fopen(shortcutsVdfPath, "rb");
-	free(shortcutsVdfPath);
 	if (fp == NULL) {
 		exitWithError("Shortcuts vdf could not be found.", 93);
 	}
@@ -1147,6 +1157,7 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 
 		free(fileContent);
 		free(new_fileContent);
+		free(shortcutsVdfPath);
 	}
 }
 
@@ -1227,6 +1238,7 @@ int main(int argc, char** argv)
 			char* orientation = apiValues[line][1];
 			char* assetUrl = apiValues[line][2];
 			char* asset_type = apiValues[line][3];
+			char* asset_hash = apiValues[line][4];
 
 
 			// If the game is a non-steam app, select an imported app
@@ -1265,6 +1277,10 @@ int main(int argc, char** argv)
 				}
 
 				app_id = nonSteamAppData->appid;
+			} else if (strcmp(asset_type, "icon") == 0 && strcmp(asset_hash, "notfound") == 0) {
+
+				// If the requested asset is an official Steam icon that was not found in the api, skip this asset
+				continue;
 			}
 
 			// Get Steam base dir
@@ -1274,7 +1290,7 @@ int main(int argc, char** argv)
 			}
 
 			// Download asset file
-			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, steamDestDir, nonSteamAppData);
+			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, asset_hash, steamDestDir, nonSteamAppData);
 			if (outfilename == NULL) {
 				exitWithError("Could not download asset file.", 84);
 			}
