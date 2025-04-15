@@ -47,6 +47,7 @@ typedef struct nonSteamApp
 } nonSteamApp;
 
 int _nonSteamAppsCount = 0;
+int _modsCount = 0;
 int _sourceModsCount = 0;
 int _goldSourceModsCount = 0;
 int _apiReturnedLines = 0;
@@ -738,7 +739,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 	struct nonSteamApp* sourceMods = malloc(sizeof(nonSteamApp) * modsCount);
 
 	for (int i = 0; i < modsCount; i++) {
-		sourceMods[i].index = _nonSteamAppsCount;
+		sourceMods[i].index = _modsCount;
 		char int_string[50];
 		unsigned int hex_index = i;
 		if (goldsource) {
@@ -772,7 +773,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 }
 
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
-struct nonSteamApp* getNonSteamApps(int includeMods) {
+struct nonSteamApp* getNonSteamApps() {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
@@ -894,45 +895,39 @@ struct nonSteamApp* getNonSteamApps(int includeMods) {
 		free(realFileContent);
 	}
 
-	// Add source (and goldsource) mods
-	if (includeMods) {
-		struct nonSteamApp* sourceMods = getSourceMods("source");
-		struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
-		for (int i = 0; i < _sourceModsCount; i++) {
-			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-			strcpy(apps[_nonSteamAppsCount].name, sourceMods[i].name);
-			strcpy(apps[_nonSteamAppsCount].appid_old, sourceMods[i].appid_old);
-			strcpy(apps[_nonSteamAppsCount].appid, sourceMods[i].appid);
-			strcpy(apps[_nonSteamAppsCount].type, "source-mod");
+	return apps;
+}
 
-			_nonSteamAppsCount++;
-		}
-		for (int i = 0; i < _goldSourceModsCount; i++) {
-			apps[_nonSteamAppsCount].index = _nonSteamAppsCount;
-			strcpy(apps[_nonSteamAppsCount].name, goldSourceMods[i].name);
-			strcpy(apps[_nonSteamAppsCount].appid_old, goldSourceMods[i].appid_old);
-			strcpy(apps[_nonSteamAppsCount].appid, goldSourceMods[i].appid);
-			strcpy(apps[_nonSteamAppsCount].type, "goldsource-mod");
+struct nonSteamApp* getMods() {
+	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
+	struct nonSteamApp* sourceMods = getSourceMods("source");
+	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
+	for (int i = 0; i < _sourceModsCount; i++) {
+		apps[_modsCount].index = _modsCount;
+		strcpy(apps[_modsCount].name, sourceMods[i].name);
+		strcpy(apps[_modsCount].appid_old, sourceMods[i].appid_old);
+		strcpy(apps[_modsCount].appid, sourceMods[i].appid);
+		strcpy(apps[_modsCount].type, "source-mod");
 
-			_nonSteamAppsCount++;
-		}
-		free(sourceMods);
-		free(goldSourceMods);
+		_modsCount++;
 	}
+	for (int i = 0; i < _goldSourceModsCount; i++) {
+		apps[_modsCount].index = _modsCount;
+		strcpy(apps[_modsCount].name, goldSourceMods[i].name);
+		strcpy(apps[_modsCount].appid_old, goldSourceMods[i].appid_old);
+		strcpy(apps[_modsCount].appid, goldSourceMods[i].appid);
+		strcpy(apps[_modsCount].type, "goldsource-mod");
 
-
-	// Exit with an error if no non-steam apps were found
-	if (_nonSteamAppsCount < 1) {
-		ShowMessageBox("SGDBoop Error", "Could not find any non-Steam apps.");
-		free(apps);
-		exitWithError("Could not find any non-Steam apps in the according file.", 91);
+		_modsCount++;
 	}
+	free(sourceMods);
+	free(goldSourceMods);
 
 	return apps;
 }
 
 // Select a non-steam app from a dropdown list and return its ID
-struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) {
+struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, struct nonSteamApp* appsMods) {
 
 	char* appid = malloc(128);
 
@@ -942,26 +937,23 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 		strcpy(values[i], apps[i].name);
 	}
 
+	char** modsValues = malloc(sizeof(char*) * _modsCount);
+	for (int i = 0; i < _modsCount; i++) {
+		modsValues[i] = malloc(strlen(appsMods[i].name) + 1);
+		strcpy(modsValues[i], appsMods[i].name);
+	}
+
 	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
 	// Create title string
-	#if OS_Windows
-	wchar_t* sgdbNameW = ConvertStringToUnicode(sgdbName);
-	wchar_t* title = malloc((40 + wcslen(sgdbNameW)) * sizeof(wchar_t));
-
-	wcscpy(title, L"SGDBoop: Pick a game for '");
-	wcscat(title, sgdbNameW);
-	wcscat(title, L"'");
-	free(sgdbNameW);
-	#else
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
 	strcat(title, sgdbName);
 	strcat(title, "'");
-	#endif
 
 	// Sort values
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
+	qsort(modsValues, _modsCount, sizeof(const char*), compareStrings);
 
 	// Find matching value
 	int selection = -1;
@@ -972,31 +964,56 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps) 
 		}
 	}
 
+	if (selection < 0) {
+		for (int i = 0; i < _modsCount; i++) {
+			if (strcmp_i(modsValues[i], sgdbName) == 0) {
+				selection = i + _nonSteamAppsCount;
+				break;
+			}
+		}
+	}
+
 	// Create selection dialog
-	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)values, selection);
+	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)values, _modsCount, (const char**)modsValues, selection);
 
 	// Exit when user clicks cancel
 	if (retval < 0) {
 		free(apps);
 		free(values);
+		free(appsMods);
+		free(modsValues);
 		free(title);
 		exit(0);
 	}
 
+
 	// Find match
-	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		if (strcmp(apps[i].name, values[retval]) == 0) {
-			strcpy(appData->appid, apps[i].appid);
-			strcpy(appData->name, apps[i].name);
-			appData->index = apps[i].index;
-			strcpy(appData->appid_old, apps[i].appid_old);
-			strcpy(appData->type, apps[i].type);
+	struct nonSteamApp * matchedStruct;
+	char ** matchedValues;
+	if (retval >= _nonSteamAppsCount) {
+		retval -= _nonSteamAppsCount;
+		matchedStruct = appsMods;
+		matchedValues = modsValues;
+	} else {
+		matchedStruct = apps;
+		matchedValues = values;
+	}
+
+	for (int i = 0; i < _nonSteamAppsCount + _modsCount; i++) {
+		if (strcmp(matchedStruct[i].name, matchedValues[retval]) == 0) {
+			strcpy(appData->appid, matchedStruct[i].appid);
+			strcpy(appData->name, matchedStruct[i].name);
+			appData->index = matchedStruct[i].index;
+			strcpy(appData->appid_old, matchedStruct[i].appid_old);
+			strcpy(appData->type, matchedStruct[i].type);
 			break;
 		}
 	}
 
 	free(apps);
 	free(values);
+	free(appsMods);
+	free(modsValues);
 	free(title);
 
 	return appData;
@@ -1020,7 +1037,6 @@ int createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 
 // Update shortcuts.vdf with the new icon value
 void updateVdf(struct nonSteamApp* appData, char* filePath) {
-
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
 
@@ -1136,7 +1152,7 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 
 // Build as Windows app on windows instead of console
 #if OS_Windows
-static int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
+int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {
 	int argc = __argc;
 	char** argv = __argv;
@@ -1171,10 +1187,12 @@ int main(int argc, char** argv)
 
 		// Test mode
 		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
-
-			// Enable IUP GUI and show a message
-			ShowMessageBox("SGDBoop Test", "^_^/   SGDBoop is working!   \\^_^");
-
+			// Show a message
+			#if OS_Windows
+			ShowMessageBoxW(L"SGDBoop Test", L"(ノ◕ヮ◕)ノ*:・゚✧     SGDBoop is working!    ★・゚:*ヽ(◕ヮ◕ヽ)");
+			#else
+			ShowMessageBox("SGDBoop Test", "(ノ◕ヮ◕)ノ*:・゚✧   SGDBoop is working!  ★・゚:*ヽ(◕ヮ◕ヽ)");
+			#endif
 			return 0;
 		}
 
@@ -1213,20 +1231,31 @@ int main(int argc, char** argv)
 
 			// If the game is a non-steam app, select an imported app
 			if (startsWith(app_id, "nonsteam-")) {
-
 				// Select app once
 				if (line < 1) {
 					// Do not include mods in the dropdown list if the only asset selected was an icon
-					int includeMods = 1;
+					int includeMods = TRUE;
 					if (strcmp(types, "icon") == 0 || (strcmp(types, "steam") == 0 && strcmp(asset_type, "icon") == 0)) {
-						includeMods = 0;
+						includeMods = FALSE;
 					}
 
 					// Get non-steam apps
-					struct nonSteamApp* apps = getNonSteamApps(includeMods);
+					struct nonSteamApp* apps = getNonSteamApps();
+					struct nonSteamApp* appsMods = NULL;
+					if (includeMods) {
+						appsMods = getMods(includeMods);
+					}
+
+					// Exit with an error if nothing found
+					if (_nonSteamAppsCount < 1 && _modsCount < 1) {
+						ShowMessageBox("SGDBoop Error", "Could not find any non-Steam apps or mods.");
+						free(apps);
+						free(appsMods);
+						exitWithError("Could not find any non-Steam apps or mods.", 91);
+					}
 
 					// Show selection screen and return the struct
-					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps);
+					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps, appsMods);
 				}
 
 				// Skip icons for source/goldsource mods
