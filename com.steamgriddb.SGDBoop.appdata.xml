@@ -11,13 +11,24 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.3.0" date="2025-04-15">
+      <description>
+        <ul>
+          <li>Added tabs to seperate Non-Steam shortcuts and GoldSrc/Source mods.</li>
+          <li>Fixed applying icons to Steam games.</li>
+          <li>Fixed Steam Flatpak installation check.</li>
+          <li>Fixed memory leaks.</li>
+          <li>Removed IUP dependency. GTK3 is now used for GUI.</li>
+          <li>Removed legacy symlinking of horizontal capsules.</li>
+          <li>Keep original file extension while saving assets.</li>
+          <li>Major code cleanup.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.2.8" date="2023-06-09">
       <description>
         <ul>
-          <li>Fix booping non-Steam shortcuts not working for some users.</li>
-          <li>Windows: Fix registering not working if users System32 was not in the PATH.</li>
-          <li>Windows: Added Visual Style manifest for better looking UI.</li>
-          <li>Windows: Make error message shown when executing without privs clearer.</li>
+          <li>Fixed booping non-Steam shortcuts not working for some users.</li>
         </ul>
       </description>
     </release>
