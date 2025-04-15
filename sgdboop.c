@@ -117,7 +117,7 @@ void exitWithError(const char* error, const int errorCode) {
 void cleanupOldAssetFiles(const char* finalPath)
 {
 	// Copy final path and strip the extension
-	char basePath[1024];
+	char basePath[MAX_PATH];
 	strcpy(basePath, finalPath);
 
 	char* dot = strrchr(basePath, '.');
@@ -125,8 +125,8 @@ void cleanupOldAssetFiles(const char* finalPath)
 
 	const char* extensions[] = { ".jpg", ".jpeg", ".png" }; // Steam only reads from these
 
-	for (int i = 0; i < sizeof(extensions) / sizeof(extensions[0]); i++) {
-		char tempPath[1060];
+	for (int i = 0; i < 3; i++) {
+		char tempPath[MAX_PATH];
 		strcpy(tempPath, basePath);
 		strcat(tempPath, extensions[i]);
 
