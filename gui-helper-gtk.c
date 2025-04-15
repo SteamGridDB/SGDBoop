@@ -15,10 +15,10 @@ int ShowMessageBox(const char* title, const char* message)
 	);
 	gtk_window_set_title(GTK_WINDOW(dialog), title);
 
-	g_signal_connect_swapped (
+	g_signal_connect_swapped(
 		dialog,
 		"response",
-		G_CALLBACK (gtk_widget_destroy),
+		G_CALLBACK(gtk_widget_destroy),
 		dialog
 	);
 
@@ -41,18 +41,17 @@ typedef struct {
 	TabData* tab2;
 } TabsContext;
 
-static void button_callback(GtkWidget* widget, gpointer data)
+static void button_callback(gpointer data)
 {
-	GtkWidget* treeview = (GtkWidget*)data;
+	TabData* tab_data = (TabData*)data;
+	GtkWidget* treeview = tab_data->treeview;
 
 	GtkTreeSelection* selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-
 	GtkTreeModel* model;
 	GtkTreeIter iter;
 	if (gtk_tree_selection_get_selected(selection, &model, &iter))
 	{
-		int* selected_index = g_object_get_data(G_OBJECT(treeview), "selected_index");
-		gtk_tree_model_get(model, &iter, COLUMN_INDEX, selected_index, -1);
+		gtk_tree_model_get(model, &iter, COLUMN_INDEX, &tab_data->selected_index, -1);
 		gtk_main_quit();
 	}
 }
@@ -63,16 +62,19 @@ static void on_tab_switch(GtkNotebook* notebook, GtkWidget* page, guint page_num
 	GtkButton* btn = GTK_BUTTON(g_object_get_data(G_OBJECT(notebook), "ok_button"));
 
 	if (page_num == 0)
+	{
 		g_object_set_data(G_OBJECT(btn), "tabdata", ctx->tab1);
+	}
 	else
+	{
 		g_object_set_data(G_OBJECT(btn), "tabdata", ctx->tab2);
+	}
 }
-
 
 static void on_ok_button_clicked(GtkButton* button, gpointer user_data)
 {
 	TabData* data = (TabData*)g_object_get_data(G_OBJECT(button), "tabdata");
-	button_callback(GTK_WIDGET(button), data);
+	button_callback(data);
 }
 
 GtkWidget* create_treeview(const char** items, int count, int initial_selection, int* selected_index)
@@ -89,19 +91,29 @@ GtkWidget* create_treeview(const char** items, int count, int initial_selection,
 	}
 
 	GtkWidget* treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+	// Attached the selected index to the treeview so we can easily reference it in the button callback
+	g_object_set_data(G_OBJECT(treeview), "selected_index", &selected_index);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(treeview), FALSE);
 
 	GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	gtk_tree_selection_set_mode(treeselection, GTK_SELECTION_SINGLE);
 
-	if (initial_selection >= 0 && initial_selection < count) {
+	if (initial_selection < count && initial_selection >= 0) {
 		GtkTreePath* path = gtk_tree_path_new_from_indices(initial_selection, -1);
 		gtk_tree_selection_select_path(treeselection, path);
 		gtk_tree_path_free(path);
 	}
 
 	GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
-	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(treeview), -1, "", renderer, "text", COLUMN_ITEM, NULL);
+	gtk_tree_view_insert_column_with_attributes(
+		GTK_TREE_VIEW(treeview),
+		-1,
+		"",
+		renderer,
+		"text",
+		COLUMN_ITEM,
+		NULL
+	);
 
 	return treeview;
 }
@@ -152,6 +164,7 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	TabsContext* context = g_malloc(sizeof(TabsContext));
 	context->tab1 = nonsteam_data;
 	context->tab2 = mods_data;
+	//context->tab3 = steam_data;
 
 	// Button contianer
 	GtkWidget* buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -162,7 +175,6 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	// COnfirm button
 	GtkWidget* ok_button = gtk_button_new_with_label("OK");
 	gtk_widget_set_size_request(ok_button, 75, 40);
-	g_signal_connect(ok_button, "clicked", G_CALLBACK(button_callback), nonsteam_data) // nonsteam_data is changed below
 	gtk_container_add(GTK_CONTAINER(buttons), ok_button);
 	g_object_set_data(G_OBJECT(notebook), "ok_button", ok_button);
 

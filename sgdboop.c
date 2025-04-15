@@ -1187,10 +1187,12 @@ int main(int argc, char** argv)
 
 		// Test mode
 		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
-
-			// Enable IUP GUI and show a message
-			ShowMessageBox("SGDBoop Test", "^_^/   SGDBoop is working!   \\^_^");
-
+			// Show a message
+			#if OS_Windows
+			ShowMessageBoxW(L"SGDBoop Test", L"(ノ◕ヮ◕)ノ*:・゚✧     SGDBoop is working!    ★・゚:*ヽ(◕ヮ◕ヽ)");
+			#else
+			ShowMessageBox("SGDBoop Test", "(ノ◕ヮ◕)ノ*:・゚✧   SGDBoop is working!  ★・゚:*ヽ(◕ヮ◕ヽ)");
+			#endif
 			return 0;
 		}
 

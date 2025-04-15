@@ -129,7 +129,6 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 					{
 						selected_index = res;
 						int tabIndex = TabCtrl_GetCurSel(hWndTab);
-						int tabSize = sizeof(tabCounts) / sizeof(tabCounts[0]);
 						for (int i = 0; i < tabIndex; i++)
 						{
 							selected_index += tabCounts[i];
@@ -161,6 +160,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 int ShowMessageBox(const char* title, const char* message)
 {
 	return MessageBox(NULL, message, title, MB_OK | MB_ICONEXCLAMATION);
+}
+
+int ShowMessageBoxW(const wchar_t* title, const wchar_t* message)
+{
+	return MessageBoxW(NULL, message, title, MB_OK);
 }
 
 int SelectionDialog(const char* title, int count, const char** list, int modsCount, const char** modsList, int selection)
