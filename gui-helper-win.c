@@ -38,11 +38,11 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 			TCITEM tie; // not TCITEMW cause it doesn't need to be
 			tie.mask = TCIF_TEXT;
 
-			tie.pszText = "Non-Steam Apps";
+			tie.pszText = "Non-Steam";
 			TabCtrl_InsertItem(hWndTab, 0, &tie);
 
 			
-			tie.pszText = "Mods";
+			tie.pszText = "GoldSrc/Source Mods";
 			TabCtrl_InsertItem(hWndTab, 1, &tie);
 
 			//tie.pszText = "Steam Apps";

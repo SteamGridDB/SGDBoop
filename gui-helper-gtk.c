@@ -146,6 +146,12 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	GtkWidget* notebook = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(box), notebook, TRUE, TRUE, 0);
 
+	int selectionTab = 0;
+	if (selection >= count) {
+		selectionTab = 1;
+		selection -= count;
+	}
+
 	// Non-Steam apps tab
 	TabData* nonsteam_data = g_new0(TabData, 1);
 	nonsteam_data->tab_index = 0;
@@ -153,16 +159,16 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 
 	GtkWidget* scroll1 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll1), nonsteam_data->treeview);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll1, gtk_label_new("Non-Steam Apps"));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll1, gtk_label_new("Non-Steam"));
 
 	// Mods tab
 	TabData* mods_data = g_new0(TabData, 1);
 	mods_data->tab_index = 1;
-	mods_data->treeview = create_treeview(modsList, modsCount, 0, &mods_data->selected_index);
+	mods_data->treeview = create_treeview(modsList, modsCount, selection, &mods_data->selected_index);
 
 	GtkWidget* scroll2 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll2), mods_data->treeview);
-	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll2, gtk_label_new("Mods"));
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll2, gtk_label_new("GoldSrc/Source Mods"));
 
 	TabsContext* context = g_malloc(sizeof(TabsContext));
 	context->tab1 = nonsteam_data;
@@ -190,13 +196,21 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	// Switch callback to update which tab is active
 	g_signal_connect(notebook, "switch-page", G_CALLBACK(on_tab_switch), context);
 
-	// initial tab data
-	g_object_set_data(G_OBJECT(ok_button), "tabdata", nonsteam_data);
-
 	// Update button callback to extract correct data
 	g_signal_connect(ok_button, "clicked", G_CALLBACK(on_ok_button_clicked), NULL);
 
 	gtk_widget_show_all(window);
+
+	// initial tab data
+	if (selectionTab == 0) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 0);
+		g_object_set_data(G_OBJECT(ok_button), "tabdata", context->tab1);
+	}
+	else {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 1);
+		g_object_set_data(G_OBJECT(ok_button), "tabdata", context->tab2);
+	}
+
 	gtk_main();
 
 	// Clean up and return
