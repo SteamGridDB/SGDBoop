@@ -946,20 +946,10 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
 
 	// Create title string
-	#if OS_Windows
-	wchar_t* sgdbNameW = ConvertStringToUnicode(sgdbName);
-	wchar_t* title = malloc((40 + wcslen(sgdbNameW)) * sizeof(wchar_t));
-
-	wcscpy(title, L"SGDBoop: Pick a game for '");
-	wcscat(title, sgdbNameW);
-	wcscat(title, L"'");
-	free(sgdbNameW);
-	#else
 	char* title = malloc(40 + strlen(sgdbName));
 	strcpy(title, "SGDBoop: Pick a game for '");
 	strcat(title, sgdbName);
 	strcat(title, "'");
-	#endif
 
 	// Sort values
 	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
@@ -971,6 +961,15 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 		if (strcmp_i(values[i], sgdbName) == 0) {
 			selection = i;
 			break;
+		}
+	}
+
+	if (selection < 0) {
+		for (int i = 0; i < _modsCount; i++) {
+			if (strcmp_i(modsValues[i], sgdbName) == 0) {
+				selection = i + _nonSteamAppsCount;
+				break;
+			}
 		}
 	}
 
@@ -987,14 +986,26 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 		exit(0);
 	}
 
+
 	// Find match
-	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		if (strcmp(apps[i].name, values[retval]) == 0) {
-			strcpy(appData->appid, apps[i].appid);
-			strcpy(appData->name, apps[i].name);
-			appData->index = apps[i].index;
-			strcpy(appData->appid_old, apps[i].appid_old);
-			strcpy(appData->type, apps[i].type);
+	struct nonSteamApp * matchedStruct;
+	char ** matchedValues;
+	if (retval >= _nonSteamAppsCount) {
+		retval -= _nonSteamAppsCount;
+		matchedStruct = appsMods;
+		matchedValues = modsValues;
+	} else {
+		matchedStruct = apps;
+		matchedValues = values;
+	}
+
+	for (int i = 0; i < _nonSteamAppsCount + _modsCount; i++) {
+		if (strcmp(matchedStruct[i].name, matchedValues[retval]) == 0) {
+			strcpy(appData->appid, matchedStruct[i].appid);
+			strcpy(appData->name, matchedStruct[i].name);
+			appData->index = matchedStruct[i].index;
+			strcpy(appData->appid_old, matchedStruct[i].appid_old);
+			strcpy(appData->type, matchedStruct[i].type);
 			break;
 		}
 	}

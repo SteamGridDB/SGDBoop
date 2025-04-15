@@ -128,6 +128,12 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 					if (res != LB_ERR)
 					{
 						selected_index = res;
+						int tabIndex = TabCtrl_GetCurSel(hWndTab);
+						int tabSize = sizeof(tabCounts) / sizeof(tabCounts[0]);
+						for (int i = 0; i < tabIndex; i++)
+						{
+							selected_index += tabCounts[i];
+						}
 						PostQuitMessage(WM_QUIT);
 					}
 					break;
@@ -157,7 +163,7 @@ int ShowMessageBox(const char* title, const char* message)
 	return MessageBox(NULL, message, title, MB_OK | MB_ICONEXCLAMATION);
 }
 
-int SelectionDialog(const wchar_t* title, int count, const char** list, int modsCount, const char** modsList, int selection)
+int SelectionDialog(const char* title, int count, const char** list, int modsCount, const char** modsList, int selection)
 {
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -201,7 +207,7 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int mods
 
 	RegisterClassExW(&wc);
 
-	const wchar_t* unicodeTitle = title;
+	const wchar_t* unicodeTitle = ConvertStringToUnicode(title);
 
 	hWnd = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
@@ -214,21 +220,23 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int mods
 		hInstance, NULL
 	);
 
-	//free(unicodeTitle);
+	free(unicodeTitle);
 
-	for (int i = 0; i < count; ++i)
+	// Find current tab and selection, and populate the ListBox
+	int tabIndex;
+	int tabSize = sizeof(tabCounts) / sizeof(tabCounts[0]);
+	for (tabIndex = 0; tabIndex < tabSize; tabIndex++)
 	{
-		wchar_t * unicodeGameName = ConvertStringToUnicode(list[i]);
-		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)(LPCWSTR)unicodeGameName);
-		free(unicodeGameName);
+		if (tabCounts[tabIndex] < selection) {
+			selection -= tabCounts[tabIndex];
+		} else {
+			break;
+		}
 	}
+	PopulateListBoxWithSelection(tabIndex, selection);
 
-	SendMessageW(hWndList, LB_SETCURSEL, selection, 0);
-
+	// Show window and get all events
 	ShowWindow(hWnd, SW_SHOWNORMAL);
-
-	// TODO: Start at where game is matched
-	PopulateListBox(0);
 
 	while (GetMessage(&Msg, NULL, 0, 0))
 	{
@@ -236,12 +244,16 @@ int SelectionDialog(const wchar_t* title, int count, const char** list, int mods
 		DispatchMessage(&Msg);
 	}
 
+	// Return the current selection
 	return selected_index;
 }
 
-void PopulateListBox(int tabIndex)
+// Load values into current ListBox with a highlighted option
+void PopulateListBoxWithSelection(int tabIndex, int selection)
 {
-	SendMessage(hWndList, LB_RESETCONTENT, 0, 0);
+	SendMessageW(hWndList, LB_RESETCONTENT, 0, 0);
+	/*SendMessageW(hWndList, TCM_SETCURSEL, 0, (LPARAM)tabIndex);*/
+	TabCtrl_SetCurSel(hWndTab, tabIndex);
 
 	for (int i = 0; i < tabCounts[tabIndex]; ++i)
 	{
@@ -250,9 +262,15 @@ void PopulateListBox(int tabIndex)
 		free(unicode);
 	}
 
-	if (tabCounts[tabIndex] > 0) {
-		SendMessage(hWndList, LB_SETCURSEL, 0, 0);
+	if (selection > -1) {
+		SendMessageW(hWndList, LB_SETCURSEL, selection, 0);
 	}
+}
+
+// Load valuies into current ListBox without a highlighted option
+void PopulateListBox(int tabIndex)
+{
+	PopulateListBoxWithSelection(tabIndex, -1);
 }
 
 
