@@ -332,11 +332,10 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 
 			// Don't use webp extensions
 			if (strcmp(ext, ".webp") == 0) {
-				strcpy(ext, ".jpg");
+				strcpy(ext, ".png");
 			}
 			strcat(outfilename, ext);
-		}
-		else {
+		} else {
 			strcat(outfilename, ".jpg"); // fallback
 		}
 	}
