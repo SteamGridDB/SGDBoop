@@ -34,6 +34,7 @@ typedef struct {
 	GtkWidget* treeview;
 	int selection;
 	int selected_index;
+	int tab_index;
 } TabData;
 
 typedef struct {
@@ -147,6 +148,7 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 
 	// Non-Steam apps tab
 	TabData* nonsteam_data = g_new0(TabData, 1);
+	nonsteam_data->tab_index = 0;
 	nonsteam_data->treeview = create_treeview(list, count, selection, &nonsteam_data->selected_index);
 
 	GtkWidget* scroll1 = gtk_scrolled_window_new(NULL, NULL);
@@ -155,6 +157,7 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 
 	// Mods tab
 	TabData* mods_data = g_new0(TabData, 1);
+	mods_data->tab_index = 1;
 	mods_data->treeview = create_treeview(modsList, modsCount, 0, &mods_data->selected_index);
 
 	GtkWidget* scroll2 = gtk_scrolled_window_new(NULL, NULL);
@@ -197,11 +200,12 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	gtk_main();
 
 	// Clean up and return
-	int final_selection = ((TabData*)g_object_get_data(G_OBJECT(ok_button), "tabdata"))->selected_index;
+	TabData* final_tabdata = (TabData*)g_object_get_data(G_OBJECT(ok_button), "tabdata");
+	int final_selection = final_tabdata->selected_index;
 	g_free(nonsteam_data);
 	g_free(mods_data);
 
-	if (final_selection >= count) {
+	if (final_tabdata->tab_index > 0) {
 		final_selection += count;
 	}
 	return final_selection;
