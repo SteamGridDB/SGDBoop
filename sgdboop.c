@@ -32,10 +32,61 @@ void _pclose(FILE*);
 int symlink(char* a, char* b) {
 	return CreateHardLink(b, a, NULL);
 }
+
+// Get value from registry
+char* getWindowsRegistryString(HKEY key, char* subKey, char* value) {
+	HKEY hKey;
+	LONG lResult;
+	DWORD dwType = REG_SZ;
+	DWORD dwSize = MAX_PATH;
+	char* regValue = malloc(MAX_PATH);
+
+	if (RegOpenKeyExA(key, subKey, 0, KEY_READ, &hKey) != ERROR_SUCCESS) {
+		return NULL;
+	}
+
+	if (strcmp(value, "default") == 0) {
+		lResult = RegQueryValueA(key, subKey, (LPSTR)regValue, &dwSize);
+	} else {
+		lResult = RegQueryValueExA(hKey, value, NULL, &dwType, (LPBYTE)regValue, &dwSize);
+	}
+
+	if (lResult != ERROR_SUCCESS) {
+		RegCloseKey(hKey);
+		return NULL;
+	}
+
+	RegCloseKey(hKey);
+
+	return regValue;
+}
+
+// Set value in registry
+int setWindowsRegistryString(HKEY key, char* subKey, char* valueName, char* valueData) {
+	HKEY hKey;
+	LONG lResult;
+
+	// Create or open the registry key
+	lResult = RegCreateKeyExA(key, subKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL);
+
+	if (lResult != ERROR_SUCCESS) {
+		//return NULL;
+	}
+
+	// Set the string value (REG_SZ)
+	if (strcmp(valueName, "default") == 0) {
+		lResult = RegSetValueA(key, subKey, REG_SZ, (const BYTE *)valueData, (DWORD)strlen(valueData) + 1);
+	} else {
+		lResult = RegSetValueExA(hKey, valueName, 0, REG_SZ, (const BYTE *)valueData, (DWORD)strlen(valueData) + 1);
+	}
+
+	RegCloseKey(hKey);
+	return (lResult == ERROR_SUCCESS);
+}
 #endif
 
 #define API_VERSION "3"
-#define API_USER_AGENT "SGDBoop/v1.3.0"
+#define API_USER_AGENT "SGDBoop/v1.3.1"
 
 typedef struct nonSteamApp
 {
@@ -320,37 +371,36 @@ int createURIprotocol() {
 	char cwd[MAX_PATH];
 	GetModuleFileName(NULL, cwd, MAX_PATH);
 
-	char* regeditCommand = malloc(2028);
-	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\Shell\\Open\\Command /t REG_SZ /d \"\\\"");
-	strcat(regeditCommand, cwd);
-	strcat(regeditCommand, "\\\" \\\"%1\\\" -new_console:z\" /f");
+	char* regeditPath = malloc(2028);
+	strcpy(regeditPath, "\"");
+	strcat(regeditPath, cwd);
+	strcat(regeditPath, "\" \"%1\" -new_console:z");
 
-	int ret_val_reg = system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /t REG_SZ /d \"URL:sgdb protocol\" /f");
-	if (ret_val_reg != 0) {
-		int ret_val_exists = system("C:\\Windows\\System32\\reg.exe query HKCR\\sgdb\\Shell\\Open\\Command /ve");
-		if (ret_val_exists != 0) {
+	if (!setWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb", "default", "URL:sgdb protocol")) {
+		char* ret_val_str = getWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb\\Shell\\Open\\Command", "default");
+		if (!ret_val_str) {
 			ShowMessageBox("SGDBoop Error", "Please run this program as Administrator to register it!\n");
-		} else {
-			ShowMessageBox("SGDBoop Error", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
+		} else if (strcmp(ret_val_str, regeditPath) == 0) {
+			ShowMessageBoxW(L"SGDBoop Information", L"SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
 		}
-		free(regeditCommand);
+		free(regeditPath);
 		return 1;
 	}
 
-	system(regeditCommand);
+	setWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb\\Shell\\Open\\Command", "default", regeditPath);
 
-	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb\\DefaultIcon /t REG_SZ /d \"");
-	strcat(regeditCommand, cwd);
-	strcat(regeditCommand, "\" /f");
-	system(regeditCommand);
+	strcpy(regeditPath, "\"");
+	strcat(regeditPath, cwd);
+	strcat(regeditPath, "\"");
 
-	system("C:\\Windows\\System32\\reg.exe ADD HKCR\\sgdb /v \"URL Protocol\" /t REG_SZ /d \"\" /f");
+	setWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb\\DefaultIcon", "default", regeditPath);
+	setWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb", "URL Protocol", "");
 
 	strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 	strcat(popupMessage, "\n\nLog file path: ");
 	strcat(popupMessage, logFilepath);
-	ShowMessageBox("SGDBoop Information", popupMessage);
-	free(regeditCommand);
+	ShowMessageBoxW(L"SGDBoop Information", ConvertStringToUnicode(popupMessage));
+	free(regeditPath);
 	return 0;
 #else
 	// Do nothing on linux
@@ -391,26 +441,11 @@ char* getSteamBaseDir() {
 	int foundValue = 0;
 
 #if OS_Windows
-	FILE* terminal = _popen("C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v SteamPath", "r");
-	char buf[256];
-	while (fgets(buf, sizeof(buf), terminal) != 0) {
-		if (strstr(buf, "SteamPath")) {
-			char* extractedValue = strstr(buf, "REG_SZ") + 10;
-			strcpy(steamBaseDir, extractedValue);
-			foundValue = 1;
-		}
-	}
-	_pclose(terminal);
-	if (!foundValue) {
-		free(steamBaseDir);
-		return NULL;
-	}
+	char* steamPath = getWindowsRegistryString(HKEY_CURRENT_USER, "Software\\Valve\\Steam", "SteamPath");
 
-	int steamDirLength = strlen(steamBaseDir);
-	for (int i = 0; i < steamDirLength; i++) {
-		if (steamBaseDir[i] == '\n') {
-			steamBaseDir[i] = '\0';
-		}
+	if (steamPath != NULL) {
+		foundValue = 1;
+		strcpy(steamBaseDir, steamPath);
 	}
 #else
 	foundValue = 1;
@@ -529,27 +564,10 @@ struct nonSteamApp* getSourceMods(const char* type)
 	// Windows: Query registry
 	char regeditCommand[200];
 
-	strcpy(regeditCommand, "C:\\Windows\\System32\\reg.exe query HKCU\\Software\\Valve\\Steam /v ");
-	strcat(regeditCommand, regValue);
-	strcat(regeditCommand, " 2>nul"); // Suppress error output
+	sourceModPath = getWindowsRegistryString(HKEY_CURRENT_USER, "Software\\Valve\\Steam", regValue);
 
-	FILE* terminal = _popen(regeditCommand, "r");
-	char buf[256];
-	while (fgets(buf, sizeof(buf), terminal) != 0) {
-		if (strstr(buf, regValue)) {
-			char* extractedValue = strstr(buf, "REG_SZ") + 10;
-			strcpy(sourceModPath, extractedValue);
-			foundValue = 1;
-		}
-	}
-	_pclose(terminal);
-
-
-	int sourceModDirLength = strlen(sourceModPath);
-	for (int i = 0; i < sourceModDirLength; i++) {
-		if (sourceModPath[i] == '\n') {
-			sourceModPath[i] = '\0';
-		}
+	if (sourceModPath != NULL) {
+		foundValue = 1;
 	}
 #else
 	// Linux: Read registry.vdf
@@ -1162,15 +1180,16 @@ void updateVdf(struct nonSteamApp* appData, char* filePath) {
 }
 
 // Build as Windows app on windows instead of console
-#if OS_Windows
+	#if OS_Windows
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {
 	int argc = __argc;
 	char** argv = __argv;
+	ShowWindow(GetConsoleWindow(), 0);
 #else
 int main(int argc, char** argv)
 {
-#endif
+	#endif
 
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
