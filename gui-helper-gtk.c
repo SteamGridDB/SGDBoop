@@ -200,5 +200,9 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	int final_selection = ((TabData*)g_object_get_data(G_OBJECT(ok_button), "tabdata"))->selected_index;
 	g_free(nonsteam_data);
 	g_free(mods_data);
+
+	if (final_selection >= count) {
+		final_selection += count;
+	}
 	return final_selection;
 }
