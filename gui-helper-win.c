@@ -207,7 +207,7 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 
 	RegisterClassExW(&wc);
 
-	const wchar_t* unicodeTitle = ConvertStringToUnicode(title);
+	wchar_t* unicodeTitle = ConvertStringToUnicode(title);
 
 	hWnd = CreateWindowExW(
 		WS_EX_CLIENTEDGE,
@@ -252,7 +252,6 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 void PopulateListBoxWithSelection(int tabIndex, int selection)
 {
 	SendMessageW(hWndList, LB_RESETCONTENT, 0, 0);
-	/*SendMessageW(hWndList, TCM_SETCURSEL, 0, (LPARAM)tabIndex);*/
 	TabCtrl_SetCurSel(hWndTab, tabIndex);
 
 	for (int i = 0; i < tabCounts[tabIndex]; ++i)
