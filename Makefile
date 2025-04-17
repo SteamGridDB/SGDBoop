@@ -14,7 +14,7 @@ all: build
 
 .PHONY: build
 build:
-	$(CC) -g sgdboop.c curl-helper.c gui-helper-gtk.c string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs gtk+-3.0 libcurl) -o linux-release/SGDBoop $(LDFLAGS)
+	$(CC) -O3 -g sgdboop.c curl-helper.c gui-helper-gtk.c string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs gtk+-3.0 libcurl) -o linux-release/SGDBoop $(LDFLAGS)
 
 ifdef FLATPAK_ID
 .PHONY: install
