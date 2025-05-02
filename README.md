@@ -48,8 +48,8 @@ In case you want to completely remove the app from your system:
 <details>
   <summary>AUR for Arch Linux</summary>
   
-  Install [the AUR package](https://aur.archlinux.org/packages/sgdboop-bin). This can be done with an AUR manager like `yay`:
-    `yay -S sgdboop-bin`
+  Install [the AUR package](https://aur.archlinux.org/packages/sgdboop). This can be done with an AUR manager like `yay`:
+    `yay -S sgdboop`
 </details>
 
 ### Once installed, head over to https://www.steamgriddb.com/boop to enable the "**BOOP**" buttons!
