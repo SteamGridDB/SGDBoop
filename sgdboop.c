@@ -1277,7 +1277,7 @@ int main(int argc, char** argv)
 					struct nonSteamApp* apps = getNonSteamApps();
 					struct nonSteamApp* appsMods = NULL;
 					if (includeMods) {
-						appsMods = getMods(includeMods);
+						appsMods = getMods();
 					}
 
 					// Exit with an error if nothing found
