@@ -428,7 +428,6 @@ int deleteURIprotocol() {
 
 	system("cls");
 	printf("Program unregistered successfully!\n");
-	system("pause");
 	return 0;
 #else
 	// Do nothing on linux
