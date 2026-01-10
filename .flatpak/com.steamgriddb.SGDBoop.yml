@@ -8,7 +8,6 @@ finish-args:
   - --socket=fallback-x11
   - --share=ipc
   - --share=network
-  - --filesystem=~/.local/state:create
   # Used for reading SteamID of user
   - --filesystem=~/.steam/steam/config/loginusers.vdf:ro
   # For saving custom images and reading shortcuts.vdf for Non-Steam games. shortcuts.vdf is also written to for non-Steam icons.
@@ -27,7 +26,8 @@ finish-args:
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/userdata:rw
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam/appcache/librarycache:rw
   - --filesystem=~/.var/app/com.valvesoftware.Steam/data/registry.vdf:ro
-  - --filesystem=~/.var/app/com.valvesoftware.Steam:rw
+  # For checking Steam installation type
+  - --filesystem=/var/lib/flatpak/app/com.valvesoftware.Steam:ro
 modules:
   - name: sgdboop
     no-autogen: true
