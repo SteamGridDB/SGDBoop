@@ -1,4 +1,4 @@
-﻿#include <stdlib.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
@@ -1276,7 +1276,7 @@ int main(int argc, char** argv)
 					struct nonSteamApp* apps = getNonSteamApps();
 					struct nonSteamApp* appsMods = NULL;
 					if (includeMods) {
-						appsMods = getMods(includeMods);
+						appsMods = getMods();
 					}
 
 					// Exit with an error if nothing found
