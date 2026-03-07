@@ -10,8 +10,6 @@ install -Dm755 SGDBoop -t /usr/local/bin
 chmod +x /usr/local/bin/SGDBoop
 desktop-file-install com.steamgriddb.SGDBoop.desktop --delete-original --rebuild-mime-info-cache
 
-su - $SUDO_USER
-xdg-mime default com.steamgriddb.SGDBoop.desktop x-scheme-handler/sgdb
-
+su - $SUDO_USER -c "xdg-mime default com.steamgriddb.SGDBoop.desktop x-scheme-handler/sgdb"
 echo "Installation complete! You may delete this install script."
 exit 0
