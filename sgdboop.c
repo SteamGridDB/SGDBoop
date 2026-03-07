@@ -1019,7 +1019,8 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 
 
 	// Find match
-	struct nonSteamApp * matchedStruct;
+	int matchCount;
+    struct nonSteamApp * matchedStruct;
 	char ** matchedValues;
 	if (retval >= _nonSteamAppsCount) {
 		retval -= _nonSteamAppsCount;
@@ -1028,9 +1029,10 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 	} else {
 		matchedStruct = apps;
 		matchedValues = values;
-	}
+        matchCount = _nonSteamAppsCount;
+        }
 
-	for (int i = 0; i < _nonSteamAppsCount + _modsCount; i++) {
+	for (int i = 0; i < matchCount; i++) {
 		if (strcmp(matchedStruct[i].name, matchedValues[retval]) == 0) {
 			strcpy(appData->appid, matchedStruct[i].appid);
 			strcpy(appData->name, matchedStruct[i].name);
