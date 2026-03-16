@@ -14,6 +14,7 @@
     <release version="1.3.2" date="2026-03-16">
       <description>
         <ul>
+          <li>Fixed Non-Steam Games not working for some users</li>
           <li>Fixed permission check for Steam Flatpak</li>
           <li>Hide entry from app launchers</li>
         </ul>
