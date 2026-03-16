@@ -1,5 +1,5 @@
-[Desktop Entry]
 # This .desktop will only be used with the flatpak
+[Desktop Entry]
 Name=SGDBoop
 Comment=Apply Steam assets from SteamGridDB
 Exec=SGDBoop %U
