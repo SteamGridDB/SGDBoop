@@ -16,7 +16,6 @@
         <ul>
           <li>Fixed Non-Steam Games not working for some users</li>
           <li>Fixed permission check for Steam Flatpak</li>
-          <li>Hide entry from app launchers</li>
         </ul>
       </description>
     </release>
