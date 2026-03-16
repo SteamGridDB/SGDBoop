@@ -1,0 +1,10 @@
+[Desktop Entry]
+# This .desktop will only be used with the flatpak
+Name=SGDBoop
+Comment=Apply Steam assets from SteamGridDB
+Exec=SGDBoop %U
+Terminal=false
+Type=Application
+Icon=com.steamgriddb.SGDBoop
+MimeType=x-scheme-handler/sgdb
+Categories=Utility
