@@ -477,8 +477,10 @@ char* getSteamBaseDir() {
 // Find the most recently logged-in user
 char* getMostRecentUser(char* steamBaseDir) {
 
+	char* tempSteamid = malloc(512);
 	char* steamid = malloc(512);
 	char* steamConfigFile = malloc(MAX_PATH);
+	long long unsigned int latestTimestamp = 0;
 	strcpy(steamConfigFile, steamBaseDir);
 	strcat(steamConfigFile, "/config/loginusers.vdf");
 
@@ -490,22 +492,28 @@ char* getMostRecentUser(char* steamBaseDir) {
 	free(steamConfigFile);
 	if (fp == NULL) {
 		free(steamid);
+		free(tempSteamid);
 		exitWithError("Couldn't find logged in user", 95);
 	}
 
 	while ((read = readLine(&line, &len, fp)) != -1) {
 		if (strstr(line, "7656119") && !strstr(line, "PersonaName")) {
 			// Found line with id
-			strcpy(steamid, strstr(line, "7656119"));
-			char* stringEnd = strstr(steamid, "\"");
+			strcpy(tempSteamid, strstr(line, "7656119"));
+			char* stringEnd = strstr(tempSteamid, "\"");
 			stringEnd[0] = '\0';
 		}
-		else if ((strstr(line, "mostrecent") || strstr(line, "MostRecent")) && strstr(line, "\"1\"")) {
-			// Found line mostrecent
-			unsigned long long steamidLongLong = atoll(steamid);
-			steamidLongLong -= 76561197960265728;
-			sprintf(steamid, "%llu", steamidLongLong);
-			break;
+		else if ((strstr(line, "timestamp") || strstr(line, "Timestamp"))) {
+			// Check if it's the most recent user
+			char * timestampString = strstr_i(line, "Timestamp") + 13;
+			strstr(timestampString, "\"")[0] = '\0';
+			long long unsigned int timestamp = atoll( timestampString );
+			if (timestamp > latestTimestamp) {
+				latestTimestamp = timestamp;
+				long long unsigned int steamidLongLong = atoll(tempSteamid);
+				steamidLongLong -= 76561197960265728;
+				sprintf(steamid, "%llu", steamidLongLong);
+			}
 		}
 	}
 
