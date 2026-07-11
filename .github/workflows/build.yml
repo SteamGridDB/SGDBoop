@@ -27,7 +27,7 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         runVcpkgInstall: true
-        vcpkgGitCommitId: '4b77da7fed37817f124936239197833469f1b9a8'
+        vcpkgGitCommitId: '03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab'
         
     - name: Integrate vcpkg
       run: vcpkg integrate install
@@ -35,18 +35,18 @@ jobs:
     - name: Build Release
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
+        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Release
         copy LICENSE x64/Release/LICENSE.txt
       
     - name: Build Debug
       working-directory: ${{env.GITHUB_WORKSPACE}} 
       run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
+        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Debug
         copy LICENSE x64/Debug/LICENSE.txt
       
     - uses: actions/upload-artifact@v7
       with:
-        name: win64-release
+        name: win-x64-release
         path: |
           x64/Release/SGDBoop.exe
           x64/Release/libcurl.dll
@@ -55,12 +55,12 @@ jobs:
 
     - uses: actions/upload-artifact@v7
       with:
-        name: win64-debug
+        name: win-x64-debug
         path: x64/Debug/*
 
   windows-arm64:
     name: "Build Windows arm64"
-    runs-on: windows-11-arm
+    runs-on: windows-11-vs2026-arm
 
     steps:
     - uses: actions/checkout@v7
@@ -82,28 +82,28 @@ jobs:
     - name: Build Release
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
-        copy LICENSE x64/Release/LICENSE.txt
+        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Release
+        copy LICENSE ARM64/Release/LICENSE.txt
       
     - name: Build Debug
       working-directory: ${{env.GITHUB_WORKSPACE}} 
       run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
-        copy LICENSE x64/Debug/LICENSE.txt
+        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Debug
+        copy LICENSE ARM64/Debug/LICENSE.txt
       
     - uses: actions/upload-artifact@v7
       with:
-        name: winarm64-release
+        name: win-arm64-release
         path: |
-          x64/Release/SGDBoop.exe
-          x64/Release/libcurl.dll
-          x64/Release/zlib1.dll
-          x64/Release/LICENSE.txt
+          ARM64/Release/SGDBoop.exe
+          ARM64/Release/libcurl.dll
+          ARM64/Release/zlib1.dll
+          ARM64/Release/LICENSE.txt
 
     - uses: actions/upload-artifact@v7
       with:
-        name: winarm64-debug
-        path: x64/Debug/*
+        name: win-arm64-debug
+        path: ARM64/Debug/*
 
   linux-x64:
     name: "Build Linux x64"
@@ -167,8 +167,8 @@ jobs:
 
     - name: Archive Windows Release Builds
       run: |
-        7z a sgdboop-win64.zip ./artifacts/win64-release/*
-        7z a sgdboop-winarm64.zip ./artifacts/winarm64-release/*
+        7z a sgdboop-win64.zip ./artifacts/win-x64-release/*
+        7z a sgdboop-winarm64.zip ./artifacts/win-arm64-release/*
 
     - name: Archive Linux Release Builds
       run: |
@@ -188,4 +188,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip"
+        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip"
