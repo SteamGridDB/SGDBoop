@@ -450,4 +450,3 @@ dkms.conf
 vcpkg_installed/
 
 linux-release/SGDBoop
-linux-release/libiup.so

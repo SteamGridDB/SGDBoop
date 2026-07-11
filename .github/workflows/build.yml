@@ -11,15 +11,17 @@ permissions:
   contents: read
 
 jobs:
-  windows:
-    name: "Build Windows"
+  windows-x64:
+    name: "Build Windows x64"
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
+      with:
+        msbuild-architecture: x64
 
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v11
@@ -37,12 +39,12 @@ jobs:
         copy LICENSE x64/Release/LICENSE.txt
       
     - name: Build Debug
-      working-directory: ${{env.GITHUB_WORKSPACE}}
+      working-directory: ${{env.GITHUB_WORKSPACE}} 
       run: |
         msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
         copy LICENSE x64/Debug/LICENSE.txt
       
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: win64-release
         path: |
@@ -51,20 +53,68 @@ jobs:
           x64/Release/zlib1.dll
           x64/Release/LICENSE.txt
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: win64-debug
         path: x64/Debug/*
-  linux:
-    name: "Build Linux"
-    runs-on: ubuntu-latest
+
+  windows-arm64:
+    name: "Build Windows arm64"
+    runs-on: windows-11-arm
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v3
+      with:
+        msbuild-architecture: arm64
+
+    - name: run-vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        runVcpkgInstall: true
+        vcpkgGitCommitId: '4b77da7fed37817f124936239197833469f1b9a8'
+        
+    - name: Integrate vcpkg
+      run: vcpkg integrate install
+
+    - name: Build Release
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Release
+        copy LICENSE x64/Release/LICENSE.txt
+      
+    - name: Build Debug
+      working-directory: ${{env.GITHUB_WORKSPACE}} 
+      run: |
+        msbuild /m /p:VcpkgEnableManifest=true /p:Configuration=Debug
+        copy LICENSE x64/Debug/LICENSE.txt
+      
+    - uses: actions/upload-artifact@v7
+      with:
+        name: winarm64-release
+        path: |
+          x64/Release/SGDBoop.exe
+          x64/Release/libcurl.dll
+          x64/Release/zlib1.dll
+          x64/Release/LICENSE.txt
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: winarm64-debug
+        path: x64/Debug/*
+
+  linux-x64:
+    name: "Build Linux x64"
+    runs-on: ubuntu-slim
     env:
       OS: Linux
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
 
-    - name: Install libcurl
+    - name: Install libcurl, GTK3
       run: |
         sudo apt-get update
         sudo apt-get install -y libcurl4-openssl-dev libgtk-3-dev
@@ -74,31 +124,61 @@ jobs:
         sudo make
         cp LICENSE linux-release/LICENSE
       
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
-        name: linux-build
+        name: linux-x64-build
+        path: linux-release/*
+
+  linux-arm64:
+    name: "Build Linux arm64"
+    runs-on: ubuntu-22.04-arm
+    env:
+      OS: Linux
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install libcurl, GTK3
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libgtk-3-dev
+
+    - name: Build
+      run: |
+        sudo make
+        cp LICENSE linux-release/LICENSE
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: linux-arm64-build
         path: linux-release/*
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
     name: "Upload Artifacts to Release"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
-    needs: [windows,linux]
+    needs: [windows-x64, windows-arm64,linux-x64,linux-arm64]
     steps:
-    - uses: actions/download-artifact@v4.1.7
+    - uses: actions/download-artifact@v8
       with:
         path: artifacts
 
-    - name: Archive Windows Release Build
-      run: 7z a sgdboop-win64.zip ./artifacts/win64-release/*
-
-    - name: Archive Linux Release Build
+    - name: Archive Windows Release Builds
       run: |
-        chmod +x artifacts/linux-build/install.sh artifacts/linux-build/SGDBoop
-        cd artifacts/linux-build/
+        7z a sgdboop-win64.zip ./artifacts/win64-release/*
+        7z a sgdboop-winarm64.zip ./artifacts/winarm64-release/*
+
+    - name: Archive Linux Release Builds
+      run: |
+        chmod +x artifacts/linux-x64-build/install.sh artifacts/linux-x64-build/SGDBoop
+        cd artifacts/linux-x64-build/
         tar -czvf ../../sgdboop-linux64.tar.gz *
+
+        chmod +x artifacts/linux-arm64-build/install.sh artifacts/linux-arm64-build/SGDBoop
+        cd artifacts/linux-arm64-build/
+        tar -czvf ../../sgdboop-linuxarm64.tar.gz *
 
     - uses: ncipollo/release-action@v1
       with:
@@ -108,4 +188,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux64.tar.gz,sgdboop-win64.zip"
+        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip"
