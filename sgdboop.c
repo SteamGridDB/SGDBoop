@@ -12,12 +12,26 @@
 #include "gui-helper.h"
 #include "crc.h"
 
+#ifdef __APPLE__
+#define OS_Mac 1
+#endif
+#ifdef __linux__
+#define OS_Linux 1
+#endif
 
-#ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
-#define OS_Windows 0
-#define MAX_PATH 600 
+// Shims for Unix systems
+#if defined(OS_Mac) || defined(OS_Linux)
 #define FALSE 0
 #define TRUE 1
+
+#ifndef MAX_PATH
+#ifdef PATH_MAX
+#define MAX_PATH PATH_MAX
+#else
+#define MAX_PATH 4096
+#endif
+#endif
+
 #define WCHAR char
 #define LPSTR char*
 int GetConsoleWindow();
@@ -26,7 +40,9 @@ void GetModuleFileName(char*, char*, int);
 FILE* _popen(char*, char*);
 void _pclose(FILE*);
 #include <unistd.h>
-#elif defined(_WIN32) || defined(WIN32)     /* _Win32 is usually defined by compilers targeting 32 or   64 bit Windows systems */
+
+// Windows Only APIs
+#elif defined(_WIN32) || defined(WIN32)
 #define OS_Windows 1
 #include <windows.h>
 int symlink(char* a, char* b) {
@@ -117,7 +133,7 @@ char* getLogFilepath() {
 	*filename = '\0';
 	strcpy(logFilepath, (const char*)path);
 	strcat(logFilepath, "sgdboop_error.log");
-#else
+#elif OS_Linux
 	if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
 		strcpy(logFilepath, getenv("XDG_STATE_HOME"));
 	}
@@ -132,6 +148,9 @@ char* getLogFilepath() {
 	}
 
 	strcat(logFilepath, "/sgdboop_error.log");
+#elif OS_Mac
+	strcpy(logFilepath, getenv("HOME"));
+	strcat(logFilepath, "/Library/Logs/sgdboop_error.log");
 #endif
 
 	return logFilepath;
@@ -405,12 +424,14 @@ int createURIprotocol() {
 	ShowMessageBoxW(L"SGDBoop Information", ConvertStringToUnicode(popupMessage));
 	free(regeditPath);
 	return 0;
-#else
+#elif OS_Linux
 	// Do nothing on linux
 	strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 	strcat(popupMessage, "\n\nLog file path: ");
 	strcat(popupMessage, logFilepath);
 	ShowMessageBox("SGDBoop Information", popupMessage);
+	return 0;
+#else
 	return 0;
 #endif
 }
@@ -449,7 +470,7 @@ char* getSteamBaseDir() {
 		foundValue = 1;
 		strcpy(steamBaseDir, steamPath);
 	}
-#else
+#elif OS_Linux
 	foundValue = 1;
 	strcpy(steamBaseDir, getenv("HOME"));
 
@@ -464,6 +485,10 @@ char* getSteamBaseDir() {
 		// Steam installed on host
 		strcat(steamBaseDir, "/.steam/steam");
 	}
+#elif OS_Mac
+	foundValue = 1;
+	strcpy(steamBaseDir, getenv("HOME"));
+	strcat(steamBaseDir, "/Library/Application Support/Steam");
 #endif
 
 	if (foundValue < 1) {
@@ -593,7 +618,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 	strcpy(regValue, regValueTemp);
 
 	char* regFileLocation = getSteamBaseDir();
-	regFileLocation = strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
+	strcat(regFileLocation, "/registry.vdf");
 	fp_reg = fopen(regFileLocation, "r");
 
 	// If the file doesn't exist, skip this function

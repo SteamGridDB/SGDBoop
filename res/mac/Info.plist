@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleName</key>
+	<string>SGDBoop</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.steamgriddb.SGDBoop</string>
+	<key>CFBundleExecutable</key>
+	<string>SGDBoop</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.3.2</string>
+	<key>CFBundleVersion</key>
+	<string>1.3.2</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<!-- Don't appear in the dock -->
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.15.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.steamgriddb.SGDBoop</string>
+			<key>CFBundleURLIconFile</key>
+			<string>AppIcon.icns</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sgdb</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>SteamGridDB, LLC</string>
+</dict>
+</plist>

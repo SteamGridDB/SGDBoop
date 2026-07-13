@@ -19,6 +19,14 @@ all: build
 build:
 	$(CC) -O3 -g sgdboop.c curl-helper.c gui-helper-gtk.c string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs gtk+-3.0 libcurl) -o $(OUTPUT_DIR)/SGDBoop $(LDFLAGS)
 
+.PHONY: build-mac
+build-mac:
+	mkdir -p SGDBoop.app/Contents/MacOS
+	mkdir -p SGDBoop.app/Contents/Resources
+	cp res/mac/AppIcon.icns SGDBoop.app/Contents/Resources/AppIcon.icns
+	cp res/mac/Info.plist SGDBoop.app/Contents/Info.plist
+	$(CC) -Wno-pointer-sign -fobjc-arc -arch arm64 -arch x86_64 -g sgdboop.c curl-helper.c gui-helper-mac.m string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs libcurl) -framework Cocoa -o SGDBoop.app/Contents/MacOS/SGDBoop $(LDFLAGS)
+
 ifdef FLATPAK_ID
 .PHONY: install
 install: build
