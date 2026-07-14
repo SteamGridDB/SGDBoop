@@ -52,7 +52,41 @@ In case you want to completely remove the app from your system:
     `yay -S sgdboop`
 </details>
 
+## Set up for macOS
+<details>
+  <summary>Prebuilt binary via install script</summary>
+
+  1. Download the latest [sgdboop-macos.zip](https://github.com/SteamGridDB/SGDBoop/releases/latest)
+  2. ```sh
+     unzip sgdboop-macos.zip
+     chmod +x sgdboop-macos/install.sh
+     ./sgdboop-macos/install.sh
+     ```
+
+</details>
+
+<details>
+  <summary>Build from source</summary>
+
+  1. Install the following prerequisites: `Xcode Command Line Tools` `libcurl`
+     ```sh
+     xcode-select --install
+     brew install curl
+     ```
+  2. ```sh
+     git clone https://github.com/SteamGridDB/SGDBoop.git
+     make bundle-macos -C SGDBoop
+     ./SGDBoop/macos-release/install.sh
+     ```
+
+</details>
+
+In case you want to completely remove the app from your system:
+
+- Delete `SGDBoop.app` from your Applications folder
+
 ### Once installed, head over to https://www.steamgriddb.com/boop to enable the "**BOOP**" buttons!
+
 
 # Credits
 <a href="https://github.com/SteamGridDB/SGDBoop/graphs/contributors">

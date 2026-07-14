@@ -13,7 +13,20 @@
 #include "crc.h"
 
 
-#ifdef __unix__                             /* __unix__ is usually defined by compilers targeting Unix systems */
+#ifdef __APPLE__                            /* macOS — Apple clang does NOT define __unix__ */
+#define OS_Windows 0
+#define MAX_PATH 600
+#define FALSE 0
+#define TRUE 1
+#define WCHAR char
+#define LPSTR char*
+int GetConsoleWindow();
+void MoveWindow(int, int, int, int, int, int);
+void GetModuleFileName(char*, char*, int);
+FILE* _popen(char*, char*);
+void _pclose(FILE*);
+#include <unistd.h>
+#elif defined(__unix__)                     /* __unix__ is usually defined by compilers targeting Unix systems */
 #define OS_Windows 0
 #define MAX_PATH 600 
 #define FALSE 0
@@ -85,6 +98,7 @@ int setWindowsRegistryString(HKEY key, char* subKey, char* valueName, char* valu
 }
 #endif
 
+
 #define API_VERSION "3"
 #define API_USER_AGENT "SGDBoop/v1.3.1"
 
@@ -117,6 +131,14 @@ char* getLogFilepath() {
 	*filename = '\0';
 	strcpy(logFilepath, (const char*)path);
 	strcat(logFilepath, "sgdboop_error.log");
+#elif defined(__APPLE__)
+	// macOS: use ~/Library/Logs/SGDBoop/
+	strcpy(logFilepath, getenv("HOME"));
+	strcat(logFilepath, "/Library/Logs/SGDBoop");
+	if (access(logFilepath, 0) != 0) {
+		mkdir(logFilepath, 0700);
+	}
+	strcat(logFilepath, "/sgdboop_error.log");
 #else
 	if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
 		strcpy(logFilepath, getenv("XDG_STATE_HOME"));
@@ -344,6 +366,14 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	if (curl && outfilename != 0) {
 		cleanupOldAssetFiles(outfilename);
 		fp = fopen(outfilename, "wb");
+		if (fp == NULL) {
+			char message[1024];
+			sprintf(message, "Could not open file for writing: %s", outfilename);
+			logError(message, 86);
+			free(outfilename);
+			curl_easy_cleanup(curl);
+			return NULL;
+		}
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -405,6 +435,16 @@ int createURIprotocol() {
 	ShowMessageBoxW(L"SGDBoop Information", ConvertStringToUnicode(popupMessage));
 	free(regeditPath);
 	return 0;
+#elif defined(__APPLE__)
+	// macOS: delegate URL scheme registration to gui-helper-mac.m which has
+	// access to the required LaunchServices framework headers.
+	extern void macosRegisterURLHandler(void);
+	macosRegisterURLHandler();
+	strcpy(popupMessage, "SGDBoop registered as sgdb:// handler!\n\nHead over to https://www.steamgriddb.com/boop to get started.");
+	strcat(popupMessage, "\n\nLog file path: ");
+	strcat(popupMessage, logFilepath);
+	ShowMessageBox("SGDBoop Information", popupMessage);
+	return 0;
 #else
 	// Do nothing on linux
 	strcpy(popupMessage, "SGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
@@ -429,6 +469,12 @@ int deleteURIprotocol() {
 	system("cls");
 	printf("Program unregistered successfully!\n");
 	return 0;
+#elif defined(__APPLE__)
+	// Unregistering a URL handler is not directly supported on macOS.
+	// The user can re-register by running the app without arguments, or
+	// by removing SGDBoop.app from the Applications folder.
+	printf("To unregister sgdb:// on macOS, remove SGDBoop.app from Applications.\n");
+	return 0;
 #else
 	// Do nothing on linux
 	printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
@@ -449,6 +495,11 @@ char* getSteamBaseDir() {
 		foundValue = 1;
 		strcpy(steamBaseDir, steamPath);
 	}
+#elif defined(__APPLE__)
+	// macOS Steam is always at ~/Library/Application Support/Steam
+	foundValue = 1;
+	strcpy(steamBaseDir, getenv("HOME"));
+	strcat(steamBaseDir, "/Library/Application Support/Steam");
 #else
 	foundValue = 1;
 	strcpy(steamBaseDir, getenv("HOME"));
@@ -593,7 +644,12 @@ struct nonSteamApp* getSourceMods(const char* type)
 	strcpy(regValue, regValueTemp);
 
 	char* regFileLocation = getSteamBaseDir();
+#ifdef __APPLE__
+	// On macOS, registry.vdf lives directly under the Steam base dir
+	strcat(regFileLocation, "/registry.vdf");
+#else
 	regFileLocation = strreplace(regFileLocation, "/.steam/steam", "/.steam/registry.vdf");
+#endif
 	fp_reg = fopen(regFileLocation, "r");
 
 	// If the file doesn't exist, skip this function
@@ -1034,11 +1090,12 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 		retval -= _nonSteamAppsCount;
 		matchedStruct = appsMods;
 		matchedValues = modsValues;
+		matchCount = _modsCount;
 	} else {
 		matchedStruct = apps;
 		matchedValues = values;
-        matchCount = _nonSteamAppsCount;
-        }
+		matchCount = _nonSteamAppsCount;
+	}
 
 	for (int i = 0; i < matchCount; i++) {
 		if (strcmp(matchedStruct[i].name, matchedValues[retval]) == 0) {
@@ -1202,6 +1259,25 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 int main(int argc, char** argv)
 {
 	#endif
+
+#ifdef __APPLE__
+	// macOS delivers sgdb:// URLs via Apple Events, not argv, when launched
+	// as a URL scheme handler.  macosReceiveURLEvent() (in gui-helper-mac.m)
+	// initialises NSApplication, registers an NSAppleEventManager handler,
+	// and runs the main run loop until the URL arrives or the timeout expires.
+	extern const char* macosReceiveURLEvent(double timeoutSeconds);
+	static char* fakeArgv[2];
+	if (argc < 2 || !startsWith(argv[argc > 1 ? 1 : 0], "sgdb://")) {
+		const char* aeUrl = macosReceiveURLEvent(10.0);
+		if (aeUrl != NULL) {
+			// Inject the URL as if it were argv[1]
+			argc = 2;
+			fakeArgv[0] = argv[0];
+			fakeArgv[1] = (char*)aeUrl;
+			argv = fakeArgv;
+		}
+	}
+#endif
 
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {

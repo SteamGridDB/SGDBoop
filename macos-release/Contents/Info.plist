@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle identity -->
+    <key>CFBundleIdentifier</key>
+    <string>com.steamgriddb.SGDBoop</string>
+    <key>CFBundleName</key>
+    <string>SGDBoop</string>
+    <key>CFBundleDisplayName</key>
+    <string>SGDBoop</string>
+    <key>CFBundleExecutable</key>
+    <string>SGDBoop</string>
+
+    <!-- Bundle version -->
+    <key>CFBundleVersion</key>
+    <string>1.3.2</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.3.2</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <!-- Package type -->
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <!-- Icon -->
+    <key>CFBundleIconFile</key>
+    <string>SGDBoop</string>
+
+    <!-- Minimum macOS version -->
+    <key>LSMinimumSystemVersion</key>
+    <string>10.13</string>
+
+    <!-- Agent app: no Dock icon when launched silently by the OS for URL handling -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- High-DPI support -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <!-- Hardened runtime: allow outgoing network connections for API/CDN calls -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
+    <!-- URL scheme registration: handles sgdb:// URIs -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>SGDBoop URI</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>sgdb</string>
+            </array>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+        </dict>
+    </array>
+
+    <!-- Copyright -->
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © SteamGridDB contributors. zlib license.</string>
+</dict>
+</plist>

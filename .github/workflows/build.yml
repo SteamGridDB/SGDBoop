@@ -153,13 +153,53 @@ jobs:
         name: linux-arm64-build
         path: linux-release/*
 
+  macos:
+    name: "Build macOS (arm64 + x86_64)"
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install libcurl
+      # macOS ships libcurl but Homebrew provides up-to-date headers.
+      # We link against the system dylib to avoid bundling it.
+      run: brew install curl || true
+
+    - name: Build universal binary (arm64 + x86_64) and bundle
+      run: |
+        # Build arm64
+        make build-macos MACOS_CC="clang -target arm64-apple-macos10.15" LDFLAGS=""
+        mv macos-release/SGDBoop macos-release/SGDBoop-arm64
+
+        # Build x86_64
+        make build-macos MACOS_CC="clang -target x86_64-apple-macos10.15" LDFLAGS=""
+        mv macos-release/SGDBoop macos-release/SGDBoop-x86_64
+
+        # Merge into a universal binary
+        lipo -create -output macos-release/SGDBoop \
+          macos-release/SGDBoop-arm64 macos-release/SGDBoop-x86_64
+        rm macos-release/SGDBoop-arm64 macos-release/SGDBoop-x86_64
+
+    - name: Build icon and assemble bundle
+      run: |
+        make icon-macos
+        make bundle-macos
+
+    - name: Package release
+      run: make release-macos
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: macos-build
+        path: SGDBoop-macOS.zip
+
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
     name: "Upload Artifacts to Release"
     runs-on: ubuntu-slim
     permissions:
       contents: write
-    needs: [windows-x64, windows-arm64,linux-x64,linux-arm64]
+    needs: [windows-x64, windows-arm64, linux-x64, linux-arm64, macos]
     steps:
     - uses: actions/download-artifact@v8
       with:
@@ -180,6 +220,9 @@ jobs:
         cd artifacts/linux-arm64-build/
         tar -czvf ../../sgdboop-linuxarm64.tar.gz *
 
+    - name: Copy macOS Release Build
+      run: cp artifacts/macos-build/SGDBoop-macOS.zip sgdboop-macos.zip
+
     - uses: ncipollo/release-action@v1
       with:
         allowUpdates: true
@@ -188,4 +231,5 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip"
+        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip,sgdboop-macos.zip"
+
