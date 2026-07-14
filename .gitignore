@@ -57,6 +57,8 @@ dkms.conf
 # VCPKG
 vcpkg_installed/
 
-linux-release/SGDBoop
+dist/
+
+./SGDBoop # linux binary
 
 .DS_Store

@@ -101,8 +101,9 @@ int setWindowsRegistryString(HKEY key, char* subKey, char* valueName, char* valu
 }
 #endif
 
+#define VERSION "1.3.3" // this is also parsed by the makefile for dist
 #define API_VERSION "3"
-#define API_USER_AGENT "SGDBoop/v1.3.1"
+#define API_USER_AGENT "SGDBoop/v" VERSION
 
 typedef struct nonSteamApp
 {
