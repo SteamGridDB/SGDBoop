@@ -127,8 +127,8 @@ jobs:
         name: linux-x64-build
         path: dist/*
 
-  linux-arm64:
-    name: "Build Linux arm64"
+  linux-aarch64:
+    name: "Build Linux aarch64"
     runs-on: ubuntu-22.04-arm
     env:
       OS: Linux
@@ -146,7 +146,26 @@ jobs:
 
     - uses: actions/upload-artifact@v7
       with:
-        name: linux-arm64-build
+        name: linux-aarch64-build
+        path: dist/*
+
+  macos:
+    name: "Build MacOS Universal"
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install libcurl
+      run: |
+        brew install curl
+
+    - name: Build
+      run: make dist
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: macos-universal-build
         path: dist/*
 
   release:
@@ -155,7 +174,7 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: write
-    needs: [windows-x64, windows-arm64,linux-x64,linux-arm64]
+    needs: [windows-x64, windows-arm64,linux-x64,linux-aarch64]
     steps:
     - uses: actions/download-artifact@v8
       with:
@@ -166,10 +185,11 @@ jobs:
         7z a sgdboop-win64.zip ./artifacts/win-x64-release/*
         7z a sgdboop-winarm64.zip ./artifacts/win-arm64-release/*
 
-    - name: Get Linux Release Builds
+    - name: Get release dists built via "make dist"
       run: |
         mv artifacts/linux-x64-build/sgdboop-linux-x86_64.tar.gz ../../
-        mv artifacts/linux-x64-build/sgdboop-linux-aarch64.tar.gz ../../
+        mv artifacts/linux-aarch64-build/sgdboop-linux-aarch64.tar.gz ../../
+        mv artifacts/macos-universal-build/sgdboop-darwin-universal.tar.gz
 
     - uses: ncipollo/release-action@v1
       with:
@@ -179,4 +199,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux-x86_64.tar.gz,sgdboop-linux-aarch64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip"
+        artifacts: "sgdboop-linux-x86_64.tar.gz,sgdboop-linux-aarch64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip,sgdboop-darwin-universal.tar.gz"
