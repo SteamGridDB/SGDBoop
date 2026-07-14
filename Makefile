@@ -1,7 +1,7 @@
 # Either "linux" or "darwin", windows is built via mstools atm
 OS_NAME := $(shell uname -s | tr A-Z a-z)
 ARCH := $(shell uname -m)
-VERSION := $(shell awk -F'"' '/^\define VERSION/{print $$2}' sgdboop.c)
+VERSION := $(shell awk -F'"' '/define VERSION/{print $$2}' sgdboop.c)
 
 ifeq ($(PREFIX),)
     PREFIX := /usr/local
