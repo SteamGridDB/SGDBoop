@@ -8,6 +8,9 @@ cd "$(dirname "$0")"
 APP_NAME="SGDBoop.app"
 INSTALL_DIR="/Applications"
 
+echo "Removing quarantine from $APP_NAME ..."
+xattr -d com.apple.quarantine "$APP_NAME"
+
 echo "Installing $APP_NAME to $INSTALL_DIR ..."
 
 # Remove any previous installation
