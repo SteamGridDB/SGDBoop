@@ -62,3 +62,8 @@ dist/
 ./SGDBoop # linux binary
 
 .DS_Store
+/.vs/SGDBoop-VS
+/SGDBoop/x64
+/SGDBoop-VS.vcxproj.user
+/SGDBoop.aps
+/x64
