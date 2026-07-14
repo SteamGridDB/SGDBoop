@@ -120,14 +120,12 @@ jobs:
         sudo apt-get install -y libcurl4-openssl-dev libgtk-3-dev
 
     - name: Build
-      run: |
-        sudo make
-        cp LICENSE linux-release/LICENSE
+      run: make dist
       
     - uses: actions/upload-artifact@v7
       with:
         name: linux-x64-build
-        path: linux-release/*
+        path: dist/*
 
   linux-arm64:
     name: "Build Linux arm64"
@@ -144,14 +142,12 @@ jobs:
         sudo apt-get install -y libcurl4-openssl-dev libgtk-3-dev
 
     - name: Build
-      run: |
-        sudo make
-        cp LICENSE linux-release/LICENSE
+      run: make dist
 
     - uses: actions/upload-artifact@v7
       with:
         name: linux-arm64-build
-        path: linux-release/*
+        path: dist/*
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
@@ -170,15 +166,10 @@ jobs:
         7z a sgdboop-win64.zip ./artifacts/win-x64-release/*
         7z a sgdboop-winarm64.zip ./artifacts/win-arm64-release/*
 
-    - name: Archive Linux Release Builds
+    - name: Get Linux Release Builds
       run: |
-        chmod +x artifacts/linux-x64-build/install.sh artifacts/linux-x64-build/SGDBoop
-        cd artifacts/linux-x64-build/
-        tar -czvf ../../sgdboop-linux64.tar.gz *
-
-        chmod +x artifacts/linux-arm64-build/install.sh artifacts/linux-arm64-build/SGDBoop
-        cd artifacts/linux-arm64-build/
-        tar -czvf ../../sgdboop-linuxarm64.tar.gz *
+        mv artifacts/linux-x64-build/sgdboop-linux-x86_64.tar.gz ../../
+        mv artifacts/linux-x64-build/sgdboop-linux-aarch64.tar.gz ../../
 
     - uses: ncipollo/release-action@v1
       with:
@@ -188,4 +179,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux64.tar.gz,sgdboop-linuxarm64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip"
+        artifacts: "sgdboop-linux-x86_64.tar.gz,sgdboop-linux-aarch64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip"

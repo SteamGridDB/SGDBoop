@@ -23,6 +23,7 @@ build: build-$(OS_NAME)
 .PHONY: build-linux build-darwin
 build-linux:
 	$(CC) -O3 -g sgdboop.c curl-helper.c gui-helper-gtk.c string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs gtk+-3.0 libcurl) -o SGDBoop $(LDFLAGS)
+	chmod +x SGDBoop
 
 build-darwin:
 	mkdir -p SGDBoop.app/Contents/MacOS
@@ -33,6 +34,7 @@ build-darwin:
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" SGDBoop.app/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(VERSION)" SGDBoop.app/Contents/Info.plist
 	$(CC) -Wno-pointer-sign -fobjc-arc -arch arm64 -arch x86_64 -g sgdboop.c curl-helper.c gui-helper-mac.m string-helpers.c crc.c $(shell $(PKG_CONFIG) --cflags --libs libcurl) -framework Cocoa -o SGDBoop.app/Contents/MacOS/SGDBoop $(LDFLAGS)
+	chmod +x SGDBoop.app/Contents/MacOS/SGDBoop
 
 .PHONY: install install-linux install-flatpak
 ifdef FLATPAK_ID
