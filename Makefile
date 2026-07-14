@@ -30,6 +30,7 @@ build-darwin:
 	mkdir -p SGDBoop.app/Contents/Resources
 	cp LICENSE SGDBoop.app/Contents/Resources/LICENSE.txt
 	cp res/mac/AppIcon.icns SGDBoop.app/Contents/Resources/AppIcon.icns
+	cp res/mac/Assets.car SGDBoop.app/Contents/Resources/Assets.car
 	cp res/mac/Info.plist SGDBoop.app/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" SGDBoop.app/Contents/Info.plist
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(VERSION)" SGDBoop.app/Contents/Info.plist
