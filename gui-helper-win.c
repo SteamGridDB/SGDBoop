@@ -14,8 +14,8 @@ static HWND hWndButtonOk;
 static HWND hWndButtonCancel;
 static int selected_index = -1;
 static HWND hWndTab;
-static const char** tabLists[2];
-static int tabCounts[2];
+static const char** tabLists[3];
+static int tabCounts[3];
 
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -44,6 +44,9 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 			
 			tie.pszText = "GoldSrc/Source Mods";
 			TabCtrl_InsertItem(hWndTab, 1, &tie);
+
+			tie.pszText = "Steam";
+			TabCtrl_InsertItem(hWndTab, 2, &tie);
 
 			//tie.pszText = "Steam Apps";
 			//TabCtrl_InsertItem(hWndTab, 2, &tie);
@@ -167,18 +170,20 @@ int ShowMessageBoxW(const wchar_t* title, const wchar_t* message)
 	return MessageBoxW(NULL, message, title, MB_OK);
 }
 
-int SelectionDialog(const char* title, int count, const char** list, int modsCount, const char** modsList, int selection)
+int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamList, int modsCount, const char** modsList, int steamCount, const char** steamList, int selection)
 {
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
 	icex.dwICC = ICC_TAB_CLASSES;
 	InitCommonControlsEx(&icex);
 
-	tabCounts[0] = count;
+	tabCounts[0] = nonSteamCount;
 	tabCounts[1] = modsCount;
+	tabCounts[2] = steamCount;
 
-	tabLists[0] = list;
+	tabLists[0] = nonSteamList;
 	tabLists[1] = modsList;
+	tabLists[2] = steamList;
 
 	MSG Msg;
 	HWND hWnd;

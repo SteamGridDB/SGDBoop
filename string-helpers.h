@@ -23,3 +23,7 @@ char* strreplace(char*, const char*, const char*);
 // Case-insensitive string comparison
 // https://stackoverflow.com/a/5820991/16642426
 int strcmp_i(const char*, const char*);
+
+// Custom memmem
+// https://stackoverflow.com/a/52989329
+unsigned char* sgdb_memmem(const void*, size_t, const void* const, const size_t);
