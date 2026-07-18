@@ -240,6 +240,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, FALSE);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, API_USER_AGENT);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		headers = curl_slist_append(headers, authHeader);
 		headers = curl_slist_append(headers, apiVersionHeader);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -368,6 +369,7 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, API_USER_AGENT);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, TRUE);
 		res = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
 		fclose(fp);
