@@ -549,6 +549,7 @@ char* getMostRecentUser(char* steamBaseDir) {
 	fclose(fp);
 	if (line)
 		free(line);
+	free(tempSteamid);
 
 	return steamid;
 }
@@ -1187,8 +1188,6 @@ struct AppStruct* getMods() {
 
 // Select a non-steam app from a dropdown list and return its ID
 struct AppStruct* selectNonSteamApp(char* sgdbName, struct AppStruct* appsNonSteam, struct AppStruct* appsMods, struct AppStruct* appsSteam) {
-
-	char* appid = malloc(128);
 
 	char** nonSteamValues = malloc(sizeof(char*) * _nonSteamAppsCount);
 	for (unsigned int i = 0; i < _nonSteamAppsCount; i++) {
