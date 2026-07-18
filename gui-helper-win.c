@@ -48,9 +48,6 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 			tie.pszText = "Steam";
 			TabCtrl_InsertItem(hWndTab, 2, &tie);
 
-			//tie.pszText = "Steam Apps";
-			//TabCtrl_InsertItem(hWndTab, 2, &tie);
-
 			// ListBox
 			hWndList = CreateWindowExA(
 				WS_OVERLAPPED, // no style to look like it's inside tabs

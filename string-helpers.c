@@ -132,7 +132,7 @@ int strcmp_i(const char * a, const char * b)
 
 // Custom memmem
 // https://stackoverflow.com/a/52989329
-char* sgdb_memmem(const void* haystack, size_t haystack_len,
+const unsigned char* sgdb_memmem(const void* haystack, size_t haystack_len,
 	const void* const needle, const size_t needle_len)
 {
 	if (haystack == NULL) return NULL;
@@ -140,7 +140,7 @@ char* sgdb_memmem(const void* haystack, size_t haystack_len,
 	if (needle == NULL) return NULL;
 	if (needle_len == 0) return NULL;
 
-	for (unsigned char* h = haystack;
+	for (const unsigned char* h = haystack;
 		haystack_len >= needle_len;
 		++h, --haystack_len) {
 		if (!memcmp(h, needle, needle_len)) {

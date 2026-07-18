@@ -26,4 +26,4 @@ int strcmp_i(const char*, const char*);
 
 // Custom memmem
 // https://stackoverflow.com/a/52989329
-unsigned char* sgdb_memmem(const void*, size_t, const void* const, const size_t);
+const unsigned char* sgdb_memmem(const void*, size_t, const void* const, const size_t);
