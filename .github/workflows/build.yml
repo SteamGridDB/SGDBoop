@@ -51,6 +51,7 @@ jobs:
           x64/Release/SGDBoop.exe
           x64/Release/libcurl.dll
           x64/Release/zlib1.dll
+          x64/Release/z.dll
           x64/Release/LICENSE.txt
 
     - uses: actions/upload-artifact@v7
