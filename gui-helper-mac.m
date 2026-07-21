@@ -34,6 +34,8 @@ int ShowMessageBox(const char *title, const char *message)
     int nonSteamCount;
     const char** modsItems;
     int modsCount;
+    const char** steamItems;
+    int steamCount;
     int result;
     BOOL done;
 }
@@ -42,8 +44,10 @@ int ShowMessageBox(const char *title, const char *message)
 @property (nonatomic, weak) NSSegmentedControl* segmentedControl;
 @property (nonatomic, weak) NSScrollView* nonSteamScrollView;
 @property (nonatomic, weak) NSScrollView* modsScrollView;
+@property (nonatomic, weak) NSScrollView* steamScrollView;
 @property (nonatomic, weak) NSTableView* nonSteamTable;
 @property (nonatomic, weak) NSTableView* modsTable;
+@property (nonatomic, weak) NSTableView* steamTable;
 @property (nonatomic, weak) NSButton* okButton;
 
 - (id)initWithTitle:(const char*)title
@@ -51,6 +55,8 @@ int ShowMessageBox(const char *title, const char *message)
       nonSteamCount:(int)nsCount
           modsItems:(const char**)mItems
           modsCount:(int)mCount
+         steamItems:(const char**)sItems
+         steamCount:(int)sCount
          initialTab:(int)initialTab
    initialSelection:(int)initialSelection;
 
@@ -68,6 +74,8 @@ int ShowMessageBox(const char *title, const char *message)
       nonSteamCount:(int)nsCount
           modsItems:(const char**)mItems
           modsCount:(int)mCount
+         steamItems:(const char**)sItems
+         steamCount:(int)sCount
          initialTab:(int)initialTab
    initialSelection:(int)initialSelection
 {
@@ -80,6 +88,8 @@ int ShowMessageBox(const char *title, const char *message)
     nonSteamCount = nsCount;
     modsItems = mItems;
     modsCount = mCount;
+    steamItems = sItems;
+    steamCount = sCount;
     result = -1;
     done = NO;
 
@@ -100,9 +110,9 @@ int ShowMessageBox(const char *title, const char *message)
 
     NSView* contentView = [window contentView];
 
-    // Segmented control switches between two lists
+    // Segmented control switches between three lists
     NSSegmentedControl* segmentedControl = [
-        NSSegmentedControl segmentedControlWithLabels:@[@"Non-Steam", @"GoldSrc/Source Mods"]
+        NSSegmentedControl segmentedControlWithLabels:@[@"Non-Steam", @"GoldSrc/Source Mods", @"Steam"]
         trackingMode:NSSegmentSwitchTrackingSelectOne
         target:self
         action:@selector(segmentChanged:)
@@ -128,6 +138,14 @@ int ShowMessageBox(const char *title, const char *message)
     self.modsTable = modsTable;
     self.modsScrollView = modsScroll;
     [contentView addSubview:modsScroll];
+
+    NSTableView* steamTable = nil;
+    NSScrollView* steamScroll = [self buildScrollingTableWithTag:2 outTableView:&steamTable];
+    [steamScroll setFrame:NSMakeRect(10, 50, 434, 294)];
+    [steamScroll setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+    self.steamTable = steamTable;
+    self.steamScrollView = steamScroll;
+    [contentView addSubview:steamScroll];
 
     // buttons, on mac the standard is [Cancel] [OK]
     NSButton* okButton = [[NSButton alloc] initWithFrame:NSMakeRect(454 - 80 - 10, 10, 80, 30)];
@@ -156,9 +174,17 @@ int ShowMessageBox(const char *title, const char *message)
     [segmentedControl setSelectedSegment:initialTab];
     [nonSteamScroll setHidden:(initialTab != 0)];
     [modsScroll setHidden:(initialTab != 1)];
+    [steamScroll setHidden:(initialTab != 2)];
 
-    NSTableView* initialTable = (initialTab == 0) ? nonSteamTable : modsTable;
-    int initialCount = (initialTab == 0) ? nonSteamCount : modsCount;
+    NSTableView* initialTable = nonSteamTable;
+    int initialCount = nonSteamCount;
+    if (initialTab == 1) {
+        initialTable = modsTable;
+        initialCount = modsCount;
+    } else if (initialTab == 2) {
+        initialTable = steamTable;
+        initialCount = steamCount;
+    }
     if (initialSelection >= 0 && initialSelection < initialCount) {
         [initialTable selectRowIndexes:[NSIndexSet indexSetWithIndex:initialSelection] byExtendingSelection:NO];
         [initialTable scrollRowToVisible:initialSelection];
@@ -200,20 +226,31 @@ int ShowMessageBox(const char *title, const char *message)
     return scrollView;
 }
 
+- (NSTableView*)tableViewForSegment:(NSInteger)segment
+{
+    switch (segment) {
+        case 0: return self.nonSteamTable;
+        case 1: return self.modsTable;
+        case 2: return self.steamTable;
+        default: return nil;
+    }
+}
+
 - (void)segmentChanged:(id)sender
 {
     NSInteger selected = [self.segmentedControl selectedSegment];
     [self.nonSteamScrollView setHidden:(selected != 0)];
     [self.modsScrollView setHidden:(selected != 1)];
+    [self.steamScrollView setHidden:(selected != 2)];
 
-    NSTableView* activeTable = (selected == 0) ? self.nonSteamTable : self.modsTable;
+    NSTableView* activeTable = [self tableViewForSegment:selected];
     [self.okButton setEnabled:([activeTable selectedRow] != -1)];
 }
 
 - (void)okClicked:(id)sender
 {
     NSInteger tabIndex = [self.segmentedControl selectedSegment];
-    NSTableView* activeTable = (tabIndex == 0) ? self.nonSteamTable : self.modsTable;
+    NSTableView* activeTable = [self tableViewForSegment:tabIndex];
 
     NSInteger row = [activeTable selectedRow];
     if (row < 0) {
@@ -221,8 +258,10 @@ int ShowMessageBox(const char *title, const char *message)
     }
 
     result = (int)row;
-    if (tabIndex != 0) {
+    if (tabIndex == 1) {
         result += nonSteamCount;
+    } else if (tabIndex == 2) {
+        result += nonSteamCount + modsCount;
     }
 
     done = YES;
@@ -240,12 +279,23 @@ int ShowMessageBox(const char *title, const char *message)
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
 {
-    return ([tableView tag] == 0) ? nonSteamCount : modsCount;
+    switch ([tableView tag]) {
+        case 0: return nonSteamCount;
+        case 1: return modsCount;
+        case 2: return steamCount;
+        default: return 0;
+    }
 }
 
 - (id)tableView:(NSTableView*)tableView objectValueForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row
 {
-    const char* str = ([tableView tag] == 0) ? nonSteamItems[row] : modsItems[row];
+    const char* str = NULL;
+    switch ([tableView tag]) {
+        case 0: str = nonSteamItems[row]; break;
+        case 1: str = modsItems[row]; break;
+        case 2: str = steamItems[row]; break;
+        default: break;
+    }
     return NSStringFromCString(str);
 }
 
@@ -272,7 +322,7 @@ int ShowMessageBox(const char *title, const char *message)
 
 @end
 
-int SelectionDialog(const char* title, int count, const char** list, int modsCount, const char** modsList, int selection)
+int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamList, int modsCount, const char** modsList, int steamCount, const char** steamList, int selection)
 {
     int returnValue = -1;
 
@@ -281,17 +331,22 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 
         int initialTab = 0;
         int initialSelection = selection;
-        if (selection >= count) {
+        if (selection >= nonSteamCount + modsCount) {
+            initialTab = 2;
+            initialSelection -= nonSteamCount + modsCount;
+        } else if (selection >= nonSteamCount) {
             initialTab = 1;
-            initialSelection = selection - count;
+            initialSelection -= nonSteamCount;
         }
 
         SGDBSelectionController* controller = [[SGDBSelectionController alloc]
             initWithTitle:title
-            nonSteamItems:list
-            nonSteamCount:count
+            nonSteamItems:nonSteamList
+            nonSteamCount:nonSteamCount
                 modsItems:modsList
                 modsCount:modsCount
+               steamItems:steamList
+               steamCount:steamCount
                initialTab:initialTab
              initialSelection:initialSelection];
 
