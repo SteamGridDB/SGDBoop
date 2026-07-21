@@ -105,20 +105,21 @@ int setWindowsRegistryString(HKEY key, char* subKey, char* valueName, char* valu
 #define API_VERSION "3"
 #define API_USER_AGENT "SGDBoop/v" VERSION
 
-typedef struct nonSteamApp
+typedef struct AppStruct
 {
 	int index;
 	char name[300];
 	char appid[128];
 	char appid_old[128];
 	char type[50];
-} nonSteamApp;
+} AppStruct;
 
-int _nonSteamAppsCount = 0;
-int _modsCount = 0;
-int _sourceModsCount = 0;
-int _goldSourceModsCount = 0;
-int _apiReturnedLines = 0;
+unsigned int _nonSteamAppsCount = 0;
+unsigned int _steamAppsCount = 0;
+unsigned int _modsCount = 0;
+unsigned int _sourceModsCount = 0;
+unsigned int _goldSourceModsCount = 0;
+unsigned int _apiReturnedLines = 0;
 
 // Get logfile path
 char* getLogFilepath() {
@@ -297,7 +298,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 }
 
 // Download an asset file
-char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* asset_hash, char* destinationDir, struct nonSteamApp* nonSteamAppData)
+char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* asset_hash, char* destinationDir, struct AppStruct* nonSteamAppData)
 {
 	// Try creating folder
 	if (access(destinationDir, 0) != 0) {
@@ -548,12 +549,13 @@ char* getMostRecentUser(char* steamBaseDir) {
 	fclose(fp);
 	if (line)
 		free(line);
+	free(tempSteamid);
 
 	return steamid;
 }
 
 // Get Steam's destination directory based on artwork type
-char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
+char* getSteamDestinationDir(char* type, struct AppStruct* nonSteamAppData) {
 
 	char* steamBaseDir = getSteamBaseDir();
 	if (steamBaseDir == NULL) {
@@ -577,7 +579,7 @@ char* getSteamDestinationDir(char* type, struct nonSteamApp* nonSteamAppData) {
 }
 
 // Get source mods appids
-struct nonSteamApp* getSourceMods(const char* type)
+struct AppStruct* getSourceMods(const char* type)
 {
 	int goldsource = 0;
 	if (strcmp(type, "goldsource") == 0) {
@@ -682,7 +684,7 @@ struct nonSteamApp* getSourceMods(const char* type)
 	char** sourceModsNames = malloc(sizeof(char*) * 500000);
 	int* sourceModsSteamAppIds = malloc(sizeof(char*) * 500000);
 	char** sourceModsDirs = malloc(sizeof(char*) * 500000);
-	unsigned long modsCount = 0;
+	unsigned int modsCount = 0;
 
 	while ((dir = readdir(dr)) != NULL)
 	{
@@ -720,8 +722,8 @@ struct nonSteamApp* getSourceMods(const char* type)
 
 			// If line contains the "game" key, get the mod's name and create the struct entry
 			unsigned char* commentChar = strstr(line, "//");
-			unsigned char* nameStartChar = strstr(line, "game");
-			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
+			unsigned char* nameStartChar = strstr_i(line, "game");
+			unsigned char* steamAppIdStartChar = strstr_i(line, "SteamAppId");
 
 			// Make sure to first capture the "game" key, properly
 			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
@@ -803,9 +805,9 @@ struct nonSteamApp* getSourceMods(const char* type)
 		_sourceModsCount = modsCount;
 	}
 
-	struct nonSteamApp* sourceMods = malloc(sizeof(nonSteamApp) * modsCount);
+	struct AppStruct* sourceMods = malloc(sizeof(AppStruct) * modsCount);
 
-	for (int i = 0; i < modsCount; i++) {
+	for (unsigned int i = 0; i < modsCount; i++) {
 		sourceMods[i].index = _modsCount;
 		char int_string[50];
 		unsigned int hex_index = i;
@@ -839,12 +841,199 @@ struct nonSteamApp* getSourceMods(const char* type)
 	return sourceMods;
 }
 
+uint32_t* getOwnedAppids(unsigned int* count) {
+
+	*count = 0;
+	uint32_t* ownedAppids = malloc(sizeof(uint32_t));
+
+	// Get the shortcuts.vdf file
+	char* packageinfoVdfPath = getSteamBaseDir();
+	strcat(packageinfoVdfPath, "/appcache/packageinfo.vdf");
+
+	// Parse the file
+	FILE* fp;
+	unsigned char buf[2] = { 0 };
+	size_t bytes = 0;
+	size_t read = sizeof buf;
+	fp = fopen(packageinfoVdfPath, "rb");
+	free(packageinfoVdfPath);
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_END);
+		size_t filesize = ftell(fp) + 2;
+		fseek(fp, 0, SEEK_SET);
+
+		unsigned char* fileContent = malloc(filesize + 1);
+		memset(fileContent, '\xAB', filesize);
+		unsigned int currentFileByte = 0;
+
+		// Load the vdf in memory
+		while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+			for (int i = 0; i < sizeof buf; i++) {
+				fileContent[currentFileByte] = buf[i];
+				currentFileByte++;
+			}
+		}
+
+		fclose(fp);
+		const unsigned char* parsingChar = fileContent;
+		uint32_t appIdInt;
+		unsigned int totalAppidCount;
+		const unsigned char* appidBlockStart, *nextAppidBlock, *appId;
+
+		// Parse the vdf content
+		while ((size_t)(parsingChar - fileContent) < filesize) {
+
+			// Find appids block
+			appidBlockStart = sgdb_memmem(parsingChar, filesize - (parsingChar - fileContent), "appids\x00\x02\x30", 9) + 6;
+			if ((size_t)(appidBlockStart - fileContent) > filesize) {
+				break;
+			}
+			nextAppidBlock = sgdb_memmem(appidBlockStart, filesize - (appidBlockStart - fileContent), "appids\x00\x02\x30", 9);
+			if (nextAppidBlock - fileContent > filesize) {
+				nextAppidBlock = fileContent + filesize;
+			}
+
+			unsigned int currentAppidCount = 0;
+			appId = appidBlockStart;
+			while (appId[0] == 0x00 && appId[1] == 0x02 && appId[2] == 0x30 + currentAppidCount && appId[3] == 0x00) {
+				appId += 4;
+				appIdInt = (uint32_t)appId[0] |
+					((uint32_t)appId[1] << 8) |
+					((uint32_t)appId[2] << 16) |
+					((uint32_t)appId[3] << 24);
+
+				ownedAppids = realloc(ownedAppids, sizeof(uint32_t) * ((*count) + 1));
+				ownedAppids[(*count)++] = appIdInt;
+
+				appId += 4;
+				currentAppidCount++;
+			}
+
+			parsingChar = nextAppidBlock;
+		}
+
+		free(fileContent);
+	}
+
+	return ownedAppids;
+
+}
+
+// Parse appinfo file and return a pointer to a list of structs containing the app data
+struct AppStruct* getSteamApps() {
+
+	unsigned int ownedAppidsCount = 0;
+	uint32_t* ownedAppids = getOwnedAppids(&ownedAppidsCount);
+	char* appinfoVdfPath = getSteamBaseDir();
+	struct AppStruct* apps = malloc(sizeof(AppStruct));
+
+	// Get the shortcuts.vdf file
+	strcat(appinfoVdfPath, "/appcache/appinfo.vdf");
+
+	// Parse the file
+	FILE* fp;
+	unsigned char buf[2] = {0};
+	size_t bytes = 0;
+	size_t read = sizeof buf;
+	fp = fopen(appinfoVdfPath, "rb");
+	free(appinfoVdfPath);
+	if (fp != NULL) {
+		fseek(fp, 0L, SEEK_END);
+		size_t filesize = ftell(fp) + 2;
+		fseek(fp, 0, SEEK_SET);
+
+		unsigned char* fileContent = malloc(filesize + 1);
+		memset(fileContent, '\xAB', filesize);
+		unsigned int currentFileByte = 0;
+
+		// Load the vdf in memory
+		while ((bytes = fread(buf, sizeof * buf, read, fp)) == read) {
+			for (int i = 0; i < sizeof buf; i++) {
+				fileContent[currentFileByte] = buf[i];
+				currentFileByte++;
+			}
+		}
+
+		fclose(fp);
+		const unsigned char* parsingChar = fileContent;
+		uint32_t appIdInt;
+		unsigned char appidString[32];
+		const unsigned char *appIdStart, *appIdEnd, *appNameStart, *nextAppId, *gameTypeMatch;
+
+		// Parse the vdf content
+		while ((size_t)(parsingChar - fileContent) < filesize) {
+
+			// Find app name
+			appIdStart = sgdb_memmem(parsingChar, filesize - (parsingChar - fileContent), "\x00\x00\x00\x00\x00\x02\x01\x00\x00\x00", 10) + 10;
+			if ((size_t)(appIdStart - fileContent) > filesize) {
+				break;
+			}
+			nextAppId = sgdb_memmem(appIdStart, filesize - (appIdStart - fileContent), "\x00\x00\x00\x00\x00\x02\x01\x00\x00\x00", 10) + 10;
+			if (nextAppId - fileContent > filesize) {
+				nextAppId = fileContent + filesize;
+			}
+			appIdInt = (uint32_t)appIdStart[0] |
+				((uint32_t)appIdStart[1] << 8) |
+				((uint32_t)appIdStart[2] << 16) |
+				((uint32_t)appIdStart[3] << 24);
+			sprintf(appidString, "%u", appIdInt);
+
+			appNameStart = sgdb_memmem(appIdStart, nextAppId - appIdStart, "\x01\x04\x00\x00\x00", 5) + 5;
+
+			if ((size_t)appNameStart == 5) {
+				parsingChar = appIdStart;
+				continue;
+			}
+
+			// Check if it's game type
+			gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x00\x01\x05\x00\x00\x00game", 9) + 9;
+			if (gameTypeMatch > nextAppId || (size_t)gameTypeMatch == 9) {
+				gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x00\x01\x05\x00\x00\x00Game", 9) + 9;
+			}
+
+			if (gameTypeMatch < nextAppId && (size_t)gameTypeMatch != 9) {
+
+				// Check if app is owned
+				uint8_t owned = FALSE;
+				for (unsigned int i = 0; i < ownedAppidsCount; i++) {
+					if (ownedAppids[i] == appIdInt) {
+						owned = TRUE;
+						break;
+					}
+				}
+
+				// Add app to array if it's owned
+				if (owned) {
+					// Realloc apps
+					apps = realloc(apps, sizeof(AppStruct) * (_steamAppsCount + 1));
+
+					// Add the values to struct
+					apps[_steamAppsCount].index = _steamAppsCount;
+					strcpy(apps[_steamAppsCount].name, appNameStart);
+					strcpy(apps[_steamAppsCount].appid, appidString);
+					strcpy(apps[_steamAppsCount].appid_old, appidString);
+					strcpy(apps[_steamAppsCount].type, "steam-app");
+					++_steamAppsCount;
+				}
+			}
+
+			parsingChar = appNameStart + strlen(appNameStart);
+		}
+
+		printf("%d\n", _steamAppsCount);
+		free(fileContent);
+		free(ownedAppids);
+	}
+
+	return apps;
+}
+
 // Parse shortcuts file and return a pointer to a list of structs containing the app data
-struct nonSteamApp* getNonSteamApps() {
+struct AppStruct* getNonSteamApps() {
 
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
+	struct AppStruct* apps = malloc(sizeof(AppStruct));
 	crcInit();
 
 	// Get the shortcuts.vdf file
@@ -941,6 +1130,9 @@ struct nonSteamApp* getNonSteamApps() {
 
 			*exeEndChar = '\x03';
 
+			// Realloc apps
+			apps = realloc(apps, sizeof(AppStruct) * (_nonSteamAppsCount + 1));
+
 			// Do math magic. Valve pls fix
 			appid = (((appid | 0x80000000) << 32) | 0x02000000) >> 32;
 			appid_old = (((appid_old | 0x80000000) << 32) | 0x02000000);
@@ -951,7 +1143,8 @@ struct nonSteamApp* getNonSteamApps() {
 			strcpy(apps[_nonSteamAppsCount].name, nameStartChar);
 			sprintf(apps[_nonSteamAppsCount].appid, "%lu", (unsigned long)appid);
 			strcpy(apps[_nonSteamAppsCount].type, "nonsteam-app");
-			_nonSteamAppsCount++;
+			++_nonSteamAppsCount;
+
 
 			// Move parser to end of app data
 			*nameEndChar = 0x03; // Revert name string to prevent string-related problems
@@ -965,11 +1158,11 @@ struct nonSteamApp* getNonSteamApps() {
 	return apps;
 }
 
-struct nonSteamApp* getMods() {
-	struct nonSteamApp* apps = malloc(sizeof(nonSteamApp) * 1500000);
-	struct nonSteamApp* sourceMods = getSourceMods("source");
-	struct nonSteamApp* goldSourceMods = getSourceMods("goldsource");
-	for (int i = 0; i < _sourceModsCount; i++) {
+struct AppStruct* getMods() {
+	struct AppStruct* sourceMods = getSourceMods("source");
+	struct AppStruct* goldSourceMods = getSourceMods("goldsource");
+	struct AppStruct* apps = malloc(sizeof(AppStruct) * (_sourceModsCount + _goldSourceModsCount));
+	for (unsigned int i = 0; i < _sourceModsCount; i++) {
 		apps[_modsCount].index = _modsCount;
 		strcpy(apps[_modsCount].name, sourceMods[i].name);
 		strcpy(apps[_modsCount].appid_old, sourceMods[i].appid_old);
@@ -978,7 +1171,7 @@ struct nonSteamApp* getMods() {
 
 		_modsCount++;
 	}
-	for (int i = 0; i < _goldSourceModsCount; i++) {
+	for (unsigned int i = 0; i < _goldSourceModsCount; i++) {
 		apps[_modsCount].index = _modsCount;
 		strcpy(apps[_modsCount].name, goldSourceMods[i].name);
 		strcpy(apps[_modsCount].appid_old, goldSourceMods[i].appid_old);
@@ -994,23 +1187,27 @@ struct nonSteamApp* getMods() {
 }
 
 // Select a non-steam app from a dropdown list and return its ID
-struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, struct nonSteamApp* appsMods) {
+struct AppStruct* selectNonSteamApp(char* sgdbName, struct AppStruct* appsNonSteam, struct AppStruct* appsMods, struct AppStruct* appsSteam) {
 
-	char* appid = malloc(128);
-
-	char** values = malloc(sizeof(char*) * _nonSteamAppsCount);
-	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		values[i] = malloc(strlen(apps[i].name) + 1);
-		strcpy(values[i], apps[i].name);
+	char** nonSteamValues = malloc(sizeof(char*) * _nonSteamAppsCount);
+	for (unsigned int i = 0; i < _nonSteamAppsCount; i++) {
+		nonSteamValues[i] = malloc(strlen(appsNonSteam[i].name) + 1);
+		strcpy(nonSteamValues[i], appsNonSteam[i].name);
 	}
 
 	char** modsValues = malloc(sizeof(char*) * _modsCount);
-	for (int i = 0; i < _modsCount; i++) {
+	for (unsigned int i = 0; i < _modsCount; i++) {
 		modsValues[i] = malloc(strlen(appsMods[i].name) + 1);
 		strcpy(modsValues[i], appsMods[i].name);
 	}
 
-	struct nonSteamApp* appData = malloc(sizeof(nonSteamApp));
+	char** steamValues = malloc(sizeof(char*) * _steamAppsCount);
+	for (unsigned int i = 0; i < _steamAppsCount; i++) {
+		steamValues[i] = malloc(strlen(appsSteam[i].name) + 1);
+		strcpy(steamValues[i], appsSteam[i].name);
+	}
+
+	struct AppStruct* appData = malloc(sizeof(AppStruct));
 
 	// Create title string
 	char* title = malloc(40 + strlen(sgdbName));
@@ -1019,13 +1216,14 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 	strcat(title, "'");
 
 	// Sort values
-	qsort(values, _nonSteamAppsCount, sizeof(const char*), compareStrings);
+	qsort(nonSteamValues, _nonSteamAppsCount, sizeof(const char*), compareStrings);
+	qsort(steamValues, _steamAppsCount, sizeof(const char*), compareStrings);
 	qsort(modsValues, _modsCount, sizeof(const char*), compareStrings);
 
 	// Find matching value
 	int selection = -1;
 	for (int i = 0; i < _nonSteamAppsCount; i++) {
-		if (strcmp_i(values[i], sgdbName) == 0) {
+		if (strcmp_i(nonSteamValues[i], sgdbName) == 0) {
 			selection = i;
 			break;
 		}
@@ -1041,14 +1239,16 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 	}
 
 	// Create selection dialog
-	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)values, _modsCount, (const char**)modsValues, selection);
+	int retval = SelectionDialog(title, _nonSteamAppsCount, (const char**)nonSteamValues, _modsCount, (const char**)modsValues, _steamAppsCount, (const char**)steamValues, selection);
 
 	// Exit when user clicks cancel
 	if (retval < 0) {
-		free(apps);
-		free(values);
+		free(appsNonSteam);
+		free(nonSteamValues);
 		free(appsMods);
 		free(modsValues);
+		free(appsSteam);
+		free(steamValues);
 		free(title);
 		exit(0);
 	}
@@ -1056,17 +1256,23 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 
 	// Find match
 	int matchCount;
-    struct nonSteamApp * matchedStruct;
+    struct AppStruct * matchedStruct;
 	char ** matchedValues;
-	if (retval >= _nonSteamAppsCount) {
+	if (retval >= _nonSteamAppsCount + _modsCount) {
+		retval -= _nonSteamAppsCount + _modsCount;
+		matchedStruct = appsSteam;
+		matchedValues = steamValues;
+		matchCount = _steamAppsCount;
+	} else if (retval >= _nonSteamAppsCount) {
 		retval -= _nonSteamAppsCount;
 		matchedStruct = appsMods;
 		matchedValues = modsValues;
+		matchCount = _modsCount;
 	} else {
-		matchedStruct = apps;
-		matchedValues = values;
+		matchedStruct = appsNonSteam;
+		matchedValues = nonSteamValues;
         matchCount = _nonSteamAppsCount;
-        }
+    }
 
 	for (int i = 0; i < matchCount; i++) {
 		if (strcmp(matchedStruct[i].name, matchedValues[retval]) == 0) {
@@ -1079,17 +1285,19 @@ struct nonSteamApp* selectNonSteamApp(char* sgdbName, struct nonSteamApp* apps, 
 		}
 	}
 
-	free(apps);
-	free(values);
+	free(appsNonSteam);
+	free(nonSteamValues);
 	free(appsMods);
 	free(modsValues);
+	free(appsSteam);
+	free(steamValues);
 	free(title);
 
 	return appData;
 }
 
 // Create a symlink for a file that has the old nonsteam appid format
-int createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
+int createOldIdSymlink(struct AppStruct* appData, char* steamDestDir) {
 	char linkPath[MAX_PATH];
 	char targetPath[MAX_PATH];
 
@@ -1105,7 +1313,7 @@ int createOldIdSymlink(struct nonSteamApp* appData, char* steamDestDir) {
 }
 
 // Update shortcuts.vdf with the new icon value
-void updateVdf(struct nonSteamApp* appData, char* filePath) {
+void updateVdf(struct AppStruct* appData, char* filePath) {
 	char* shortcutsVdfPath = getSteamBaseDir();
 	char* steamid = getMostRecentUser(shortcutsVdfPath);
 
@@ -1289,7 +1497,7 @@ int main(int argc, char** argv)
 		}
 
 		// Use the same nonSteamApp object for all calls
-		struct nonSteamApp* nonSteamAppData = NULL;
+		struct AppStruct* nonSteamAppData = NULL;
 
 		for (int line = 0; line < _apiReturnedLines; line++) {
 
@@ -1305,28 +1513,30 @@ int main(int argc, char** argv)
 				// Select app once
 				if (line < 1) {
 					// Do not include mods in the dropdown list if the only asset selected was an icon
-					int includeMods = TRUE;
+					uint8_t includeMods = TRUE;
 					if (strcmp(types, "icon") == 0 || (strcmp(types, "steam") == 0 && strcmp(asset_type, "icon") == 0)) {
 						includeMods = FALSE;
 					}
 
 					// Get non-steam apps
-					struct nonSteamApp* apps = getNonSteamApps();
-					struct nonSteamApp* appsMods = NULL;
+					struct AppStruct* appsNonSteam = getNonSteamApps();
+					struct AppStruct* appsSteam = getSteamApps();
+					struct AppStruct* appsMods = NULL;
 					if (includeMods) {
 						appsMods = getMods();
 					}
 
 					// Exit with an error if nothing found
-					if (_nonSteamAppsCount < 1 && _modsCount < 1) {
+					if (_nonSteamAppsCount < 1 && _modsCount < 1 && _steamAppsCount < 1) {
 						ShowMessageBox("SGDBoop Error", "Could not find any non-Steam apps or mods.");
-						free(apps);
+						free(appsNonSteam);
+						free(appsSteam);
 						free(appsMods);
 						exitWithError("Could not find any non-Steam apps or mods.", 91);
 					}
 
 					// Show selection screen and return the struct
-					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, apps, appsMods);
+					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, appsNonSteam, appsMods, appsSteam);
 				}
 
 				// Skip icons for source/goldsource mods

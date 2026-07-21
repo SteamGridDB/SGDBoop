@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
 	TabData* tab1;
 	TabData* tab2;
+	TabData* tab3;
 } TabsContext;
 
 static void button_callback(gpointer data)
@@ -66,9 +67,13 @@ static void on_tab_switch(GtkNotebook* notebook, GtkWidget* page, guint page_num
 	{
 		g_object_set_data(G_OBJECT(btn), "tabdata", ctx->tab1);
 	}
-	else
+	else if (page_num == 1)
 	{
 		g_object_set_data(G_OBJECT(btn), "tabdata", ctx->tab2);
+	}
+	else
+	{
+		g_object_set_data(G_OBJECT(btn), "tabdata", ctx->tab3);
 	}
 }
 
@@ -81,7 +86,7 @@ static void on_ok_button_clicked(GtkButton* button, gpointer user_data)
 GtkWidget* create_treeview(const char** items, int count, int initial_selection, int* selected_index)
 {
 	GtkListStore* store = gtk_list_store_new(
-		2, // 2 tabs
+		2, // 2 columns
 		G_TYPE_STRING,
 		G_TYPE_INT
 	);
@@ -119,7 +124,7 @@ GtkWidget* create_treeview(const char** items, int count, int initial_selection,
 	return treeview;
 }
 
-int SelectionDialog(const char* title, int count, const char** list, int modsCount, const char** modsList, int selection)
+int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamList, int modsCount, const char** modsList, int steamCount, const char** steamList, int selection)
 {
 	gtk_init(NULL, NULL);
 	int selected_index = -1;
@@ -147,15 +152,19 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	gtk_box_pack_start(GTK_BOX(box), notebook, TRUE, TRUE, 0);
 
 	int selectionTab = 0;
-	if (selection >= count) {
+	if (selection >= nonSteamCount + modsCount) {
+		selectionTab = 2;
+		selection -= nonSteamCount + modsCount;
+	}
+	if (selection >= nonSteamCount) {
 		selectionTab = 1;
-		selection -= count;
+		selection -= nonSteamCount;
 	}
 
 	// Non-Steam apps tab
 	TabData* nonsteam_data = g_new0(TabData, 1);
 	nonsteam_data->tab_index = 0;
-	nonsteam_data->treeview = create_treeview(list, count, selection, &nonsteam_data->selected_index);
+	nonsteam_data->treeview = create_treeview(nonSteamList, nonSteamCount, selection, &nonsteam_data->selected_index);
 
 	GtkWidget* scroll1 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll1), nonsteam_data->treeview);
@@ -170,10 +179,19 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	gtk_container_add(GTK_CONTAINER(scroll2), mods_data->treeview);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll2, gtk_label_new("GoldSrc/Source Mods"));
 
+	// Steam tab
+	TabData* steam_data = g_new0(TabData, 1);
+	steam_data->tab_index = 2;
+	steam_data->treeview = create_treeview(steamList, steamCount, selection, &steam_data->selected_index);
+
+	GtkWidget* scroll3 = gtk_scrolled_window_new(NULL, NULL);
+	gtk_container_add(GTK_CONTAINER(scroll3), steam_data->treeview);
+	gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll3, gtk_label_new("Steam"));
+
 	TabsContext* context = g_malloc(sizeof(TabsContext));
 	context->tab1 = nonsteam_data;
 	context->tab2 = mods_data;
-	//context->tab3 = steam_data;
+	context->tab3 = steam_data;
 
 	// Button contianer
 	GtkWidget* buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -206,9 +224,13 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 0);
 		g_object_set_data(G_OBJECT(ok_button), "tabdata", context->tab1);
 	}
-	else {
+	else if (selectionTab == 1) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 1);
 		g_object_set_data(G_OBJECT(ok_button), "tabdata", context->tab2);
+	}
+	else if (selectionTab == 2) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 2);
+		g_object_set_data(G_OBJECT(ok_button), "tabdata", context->tab3);
 	}
 
 	gtk_main();
@@ -218,9 +240,10 @@ int SelectionDialog(const char* title, int count, const char** list, int modsCou
 	int final_selection = final_tabdata->selected_index;
 	g_free(nonsteam_data);
 	g_free(mods_data);
+	g_free(steam_data);
 
 	if (final_tabdata->tab_index > 0) {
-		final_selection += count;
+		final_selection += nonSteamCount;
 	}
 	return final_selection;
 }
