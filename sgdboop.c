@@ -722,8 +722,8 @@ struct AppStruct* getSourceMods(const char* type)
 
 			// If line contains the "game" key, get the mod's name and create the struct entry
 			unsigned char* commentChar = strstr(line, "//");
-			unsigned char* nameStartChar = strstr(line, "game");
-			unsigned char* steamAppIdStartChar = strstr(line, "SteamAppId");
+			unsigned char* nameStartChar = strstr_i(line, "game");
+			unsigned char* steamAppIdStartChar = strstr_i(line, "SteamAppId");
 
 			// Make sure to first capture the "game" key, properly
 			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
