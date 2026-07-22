@@ -11,6 +11,21 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.4.0" date="2026-07-23">
+      <description>
+        <ul>
+          <li>SGDBoop is now built and distributed for the ARM architecture</li>
+          <li>Added ability to apply assets to other Steam games via the (+) button.</li>
+          <li>Added ability to override the Steam base directory via the `BOOP_STEAMPATH` env var.</li>
+          <li>Updated the test popup to show some debug info, so users can potentially spot issues with their setup.</li>
+          <li>Fixed non-Steam games not being found on the latest version of Steam.</li>
+          <li>Fixed images in the Steam client sometimes looking corrupt/blank until a restart when on a slow network connection.</li>
+          <li>Fixed issue where some official Steam assets wont apply due to not following URL redirects.</li>
+          <li>Fixed some Source mods not being detected.</li>
+          <li>Fixed tons of crashes, memory leaks, edge cases.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.3.2" date="2026-03-16">
       <description>
         <ul>
