@@ -169,8 +169,8 @@ int ShowMessageBox(const char *title, const char *message)
     [contentView addSubview:cancelButton];
 
     // apply initial tab + selection
-    if (initialTab != 0) {
-        initialTab = 1;
+    if (initialTab < 0 || initialTab > 2) {
+        initialTab = 0;
     }
     [segmentedControl setSelectedSegment:initialTab];
     [nonSteamScroll setHidden:(initialTab != 0)];
