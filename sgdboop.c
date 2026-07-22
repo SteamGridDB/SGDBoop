@@ -478,6 +478,11 @@ char* getSteamBaseDir() {
 	char* steamBaseDir = malloc(MAX_PATH);
 	int foundValue = 0;
 
+	if (getenv("BOOP_STEAMPATH") != NULL && strlen(getenv("BOOP_STEAMPATH")) > 0) {
+		strcpy(steamBaseDir, getenv("BOOP_STEAMPATH"));
+		return steamBaseDir;
+	}
+
 #if OS_Windows
 	char* steamPath = getWindowsRegistryString(HKEY_CURRENT_USER, "Software\\Valve\\Steam", "SteamPath");
 
