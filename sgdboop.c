@@ -202,9 +202,7 @@ void cleanupOldAssetFiles(const char* finalPath)
 		strcpy(tempPath, basePath);
 		strcat(tempPath, extensions[i]);
 
-		if (strcmp(tempPath, finalPath) != 0) {
-			remove(tempPath);
-		}
+		remove(tempPath);
 	}
 }
 
@@ -309,7 +307,7 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	FILE* fp;
 	CURLcode res;
 
-	char* outfilename = malloc(1024);
+	char* outfilename = malloc(MAX_PATH);
 	strcpy(outfilename, destinationDir);
 	strcat(outfilename, app_id);
 	if (strcmp(type, "hero") == 0) {
@@ -362,10 +360,16 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		}
 	}
 
+
 	curl = curl_easy_init();
 	if (curl && outfilename != 0) {
 		cleanupOldAssetFiles(outfilename);
-		fp = fopen(outfilename, "wb");
+
+		char* outfilename_temp = malloc(MAX_PATH);
+		strcpy(outfilename_temp, outfilename);
+		strcat(outfilename_temp, "_temp");
+
+		fp = fopen(outfilename_temp, "wb");
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, TRUE);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -375,12 +379,18 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 		curl_easy_cleanup(curl);
 		fclose(fp);
 		if (res != 0) {
-			remove(outfilename);
+			remove(outfilename_temp);
+			free(outfilename_temp);
 			free(outfilename);
 			return NULL;
 		}
 
-		return outfilename;
+		// Rename the file to trigger a refresh on the client
+		if (!rename(outfilename_temp, outfilename)) {
+			free(outfilename);
+			free(outfilename_temp);
+			return outfilename;
+		}
 	}
 
 	free(outfilename);
