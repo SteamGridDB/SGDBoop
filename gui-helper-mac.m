@@ -448,17 +448,9 @@ int macSetURLHandler()
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     OSStatus status = LSSetDefaultHandlerForURLScheme(CFSTR("sgdb"), CFSTR("com.steamgriddb.SGDBoop"));
     if (status == noErr) {
-        CFStringRef currentHandler = LSCopyDefaultHandlerForURLScheme(CFSTR("sgdb"));
-        BOOL alreadyRegistered = (currentHandler != NULL && CFStringCompare(currentHandler, CFSTR("com.steamgriddb.SGDBoop"), 0) == kCFCompareEqualTo);
-        if (currentHandler != NULL) {
-            CFRelease(currentHandler);
-        }
-
-        if (alreadyRegistered) {
-            ShowMessageBox("SGDBoop Information", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
-        } else {
-            ShowMessageBox("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
-        }
+        ShowMessageBox("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+    } else {
+        ShowMessageBox("SGDBoop Information", "Error registering URL scheme.");
     }
     return 0;
 #pragma clang diagnostic pop
