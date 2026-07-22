@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SGDBoop (macOS, test message box)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/SGDBoop.app",
+            "args": ["sgdb://boop/test"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "SGDBoop (macOS, unregister)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/SGDBoop.app",
+            "args": ["unregister"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "SGDBoop (macOS, custom args)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/SGDBoop.app",
+            "args": ["${input:sgdboopArgs}"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "sgdboopArgs",
+            "type": "promptString",
+            "description": "Argument to pass to SGDBoop (e.g. sgdb://boop/test, unregister, sgdb://boop/<appid>)",
+            "default": "sgdb://boop/test"
+        }
+    ]
+}
