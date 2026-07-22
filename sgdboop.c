@@ -28,17 +28,12 @@
 #ifdef PATH_MAX
 #define MAX_PATH PATH_MAX
 #else
-#define MAX_PATH 4096
+#define MAX_PATH 1024
 #endif
 #endif
 
 #define WCHAR char
 #define LPSTR char*
-int GetConsoleWindow();
-void MoveWindow(int, int, int, int, int, int);
-void GetModuleFileName(char*, char*, int);
-FILE* _popen(char*, char*);
-void _pclose(FILE*);
 #include <unistd.h>
 
 // Windows Only APIs
@@ -518,7 +513,7 @@ char* getSteamBaseDir() {
 }
 
 // Find the most recently logged-in user
-char* getMostRecentUser(char* steamBaseDir) {
+char* getMostRecentUserEx(char* steamBaseDir, int failOnExit) {
 
 	char* tempSteamid = malloc(512);
 	char* steamid = malloc(512);
@@ -536,7 +531,11 @@ char* getMostRecentUser(char* steamBaseDir) {
 	if (fp == NULL) {
 		free(steamid);
 		free(tempSteamid);
-		exitWithError("Couldn't find logged in user", 95);
+		if (failOnExit) {
+            exitWithError("Couldn't find logged in user", 95);
+        } else {
+            return NULL;
+        }
 	}
 
 	while ((read = readLine(&line, &len, fp)) != -1) {
@@ -568,6 +567,10 @@ char* getMostRecentUser(char* steamBaseDir) {
 	return steamid;
 }
 
+char* getMostRecentUser(char* steamBaseDir) {
+    return getMostRecentUserEx(steamBaseDir, 1);
+}
+
 // Get Steam's destination directory based on artwork type
 char* getSteamDestinationDir(char* type, struct AppStruct* nonSteamAppData) {
 
@@ -592,9 +595,7 @@ char* getSteamDestinationDir(char* type, struct AppStruct* nonSteamAppData) {
 	return steamBaseDir;
 }
 
-// Get source mods appids
-struct AppStruct* getSourceMods(const char* type)
-{
+char* getModsPath(const char* type) {
 	int goldsource = 0;
 	if (strcmp(type, "goldsource") == 0) {
 		goldsource = 1;
@@ -674,22 +675,32 @@ struct AppStruct* getSourceMods(const char* type)
 	if (foundValue) {
 		sourceModPath = strreplace(sourceModPath, "\\\\", "/");
 	}
-#endif 
+#endif
 
 	if (!foundValue) {
 		// Allow this to fail silently, the registry key doesn't always need to be there
 		return NULL;
 	}
 
+	return sourceModPath;
+}
+
+// Get source mods appids
+struct AppStruct* getSourceMods(const char* type)
+{
+	int goldsource = 0;
+	if (strcmp(type, "goldsource") == 0) {
+		goldsource = 1;
+	}
+
+	char* sourceModPath = getModsPath(type);
+
 	struct dirent* dir;
 	DIR* dr = opendir(sourceModPath);
 
 	if (dr == NULL)
 	{
-		char errorMessage[500];
-		sprintf(errorMessage, "Could not read directory %s", sourceModPath);
 		free(sourceModPath);
-		logError(errorMessage, 98);
 		return NULL;
 	}
 
@@ -1495,11 +1506,35 @@ int main(int argc, char** argv)
 
 		// Test mode
 		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
+			char* steamBaseDir = getSteamBaseDir();
+			char* logFilepath = getLogFilepath();
+			char* mostRecentUser = getMostRecentUserEx(steamBaseDir, 0);
+			char* sourceModPath = getModsPath("source");
+			char* goldSrcModPath = getModsPath("goldsource");
+
+			char* message = malloc(MAX_PATH);
+			strcpy(message, "(ノ◕ヮ◕)ノ*:・゚✧   SGDBoop is working!  ★・゚:*ヽ(◕ヮ◕ヽ)\n\n");
+			strcat(message, "Version: " VERSION "\n");
+			strcat(message, "Last logged in user: ");
+			strcat(message, mostRecentUser != NULL ? mostRecentUser : "(not found)");
+			strcat(message, "\n\n");
+			strcat(message, "Steam directory:\n");
+			strcat(message, steamBaseDir != NULL ? steamBaseDir : "(not found)");
+			strcat(message, "\n\n");
+			strcat(message, "Source mods:\n");
+			strcat(message, sourceModPath != NULL ? sourceModPath : "(not found)");
+			strcat(message, "\n\n");
+			strcat(message, "GoldSrc mods:\n");
+			strcat(message, goldSrcModPath != NULL ? goldSrcModPath : "(not found)");
+			strcat(message, "\n\n");
+			strcat(message, "Log file:\n");
+			strcat(message, logFilepath);
+
 			// Show a message
 			#if OS_Windows
-			ShowMessageBoxW(L"SGDBoop Test", L"(ノ◕ヮ◕)ノ*:・゚✧     SGDBoop is working!    ★・゚:*ヽ(◕ヮ◕ヽ)");
+			ShowMessageBoxW(L"SGDBoop Test", ConvertStringToUnicode(message));
 			#else
-			ShowMessageBox("SGDBoop Test", "(ノ◕ヮ◕)ノ*:・゚✧   SGDBoop is working!  ★・゚:*ヽ(◕ヮ◕ヽ)");
+			ShowMessageBox("SGDBoop Test", message);
 			#endif
 			return 0;
 		}
