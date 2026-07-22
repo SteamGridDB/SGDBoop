@@ -413,6 +413,8 @@ int createURIprotocol() {
 			ShowMessageBox("SGDBoop Error", "Please run this program as Administrator to register it!\n");
 		} else if (strcmp(ret_val_str, regeditPath) == 0) {
 			ShowMessageBoxW(L"SGDBoop Information", L"SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
+		} else {
+			ShowMessageBoxW(L"SGDBoop Information", L"SGDBoop is already registered at another filepath. Run this SGDBoop executable as Administrator to register it.\n");
 		}
 		free(regeditPath);
 		return 1;
