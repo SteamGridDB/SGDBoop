@@ -8,7 +8,7 @@ ifeq ($(PREFIX),)
 endif
 
 USER_LIB_PATH := /usr/lib
-ifdef FLATPAK_ID
+ifdef FLATPAK_BUILDER_BUILDDIR
 USER_LIB_PATH := /app/lib
 endif
 
@@ -38,7 +38,7 @@ build-darwin:
 	chmod +x SGDBoop.app/Contents/MacOS/SGDBoop
 
 .PHONY: install install-linux install-flatpak
-ifdef FLATPAK_ID
+ifdef FLATPAK_BUILDER_BUILDDIR
 install: install-flatpak
 else
 install: install-$(OS_NAME)
