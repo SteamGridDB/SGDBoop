@@ -27,22 +27,18 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         runVcpkgInstall: true
-        vcpkgGitCommitId: '03e366fb91e38b9432ebd5f8cc79f7c8f55e96ab'
-        
+        vcpkgGitCommitId: '4493042c759d3bdff26164695dbee500d1e696c8'
+  
     - name: Integrate vcpkg
       run: vcpkg integrate install
 
     - name: Build Release
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Release
-        copy LICENSE x64/Release/LICENSE.txt
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Release
       
     - name: Build Debug
       working-directory: ${{env.GITHUB_WORKSPACE}} 
-      run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Debug
-        copy LICENSE x64/Debug/LICENSE.txt
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Platform=x64 /p:Configuration=Debug
       
     - uses: actions/upload-artifact@v7
       with:
@@ -53,6 +49,7 @@ jobs:
           x64/Release/zlib1.dll
           x64/Release/z.dll
           x64/Release/LICENSE.txt
+          x64/Release/unregister.bat
 
     - uses: actions/upload-artifact@v7
       with:
@@ -75,22 +72,18 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         runVcpkgInstall: true
-        vcpkgGitCommitId: '4b77da7fed37817f124936239197833469f1b9a8'
-        
+        vcpkgGitCommitId: '4493042c759d3bdff26164695dbee500d1e696c8'
+
     - name: Integrate vcpkg
       run: vcpkg integrate install
 
     - name: Build Release
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Release
-        copy LICENSE ARM64/Release/LICENSE.txt
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Release    
       
     - name: Build Debug
       working-directory: ${{env.GITHUB_WORKSPACE}} 
-      run: |
-        msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Debug
-        copy LICENSE ARM64/Debug/LICENSE.txt
+      run: msbuild /m /p:VcpkgEnableManifest=true /p:Platform=ARM64 /p:Configuration=Debug
       
     - uses: actions/upload-artifact@v7
       with:
@@ -101,6 +94,7 @@ jobs:
           ARM64/Release/zlib1.dll
           ARM64/Release/z.dll
           ARM64/Release/LICENSE.txt
+          ARM64/Release/unregister.bat
 
     - uses: actions/upload-artifact@v7
       with:
