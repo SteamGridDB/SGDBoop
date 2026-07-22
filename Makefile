@@ -66,7 +66,7 @@ ifeq ($(OS_NAME),darwin)
 else
 	mkdir -p dist/$(OS_NAME)
 	cp $(shell $(MAKE) -s print-dists-$(OS_NAME)) dist/$(OS_NAME)/
-	tar -czvf dist/sgdboop-$(OS_NAME)-$(ARCH).tar.gz dist/$(OS_NAME)/*
+	tar -czvf $(CURDIR)/dist/sgdboop-$(OS_NAME)-$(ARCH).tar.gz -C dist/$(OS_NAME) .
 	rm -rf dist/$(OS_NAME)
 endif
 

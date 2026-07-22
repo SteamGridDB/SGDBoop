@@ -189,9 +189,9 @@ jobs:
 
     - name: Get release dists built via "make dist"
       run: |
-        mv artifacts/linux-x64/sgdboop-linux-x86_64.tar.gz ../../
-        mv artifacts/linux-aarch64/sgdboop-linux-aarch64.tar.gz ../../
-        mv artifacts/macos-universal/sgdboop-darwin-universal.zip ../../
+        mv artifacts/linux-x64/sgdboop-linux-x86_64.tar.gz .
+        mv artifacts/linux-aarch64/sgdboop-linux-aarch64.tar.gz .
+        mv artifacts/macos-universal/sgdboop-darwin-universal.zip .
 
     - uses: ncipollo/release-action@v1
       with:

@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-install -Dm755 ../../SGDBoop -t /usr/local/bin
+install -Dm755 SGDBoop -t /usr/local/bin
 chmod +x /usr/local/bin/SGDBoop
 desktop-file-install com.steamgriddb.SGDBoop.desktop --delete-original --rebuild-mime-info-cache
 
