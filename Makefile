@@ -62,7 +62,7 @@ dist: build
 # if mac delete symbols before archiving
 ifeq ($(OS_NAME),darwin)
 	rm -r SGDBoop.app/Contents/MacOS/*.dSYM
-	tar -czvf dist/sgdboop-$(OS_NAME)-universal.tar.gz $(shell $(MAKE) -s print-dists-darwin)
+	ditto -c -k --keepParent $(shell $(MAKE) -s print-dists-darwin) dist/sgdboop-$(OS_NAME)-universal.zip
 else
 	mkdir -p dist/$(OS_NAME)
 	cp $(shell $(MAKE) -s print-dists-$(OS_NAME)) dist/$(OS_NAME)/

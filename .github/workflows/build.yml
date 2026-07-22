@@ -99,6 +99,7 @@ jobs:
           ARM64/Release/SGDBoop.exe
           ARM64/Release/libcurl.dll
           ARM64/Release/zlib1.dll
+          ARM64/Release/z.dll
           ARM64/Release/LICENSE.txt
 
     - uses: actions/upload-artifact@v7
@@ -125,7 +126,7 @@ jobs:
       
     - uses: actions/upload-artifact@v7
       with:
-        name: linux-x64-build
+        name: linux-x64
         path: dist/*
 
   linux-aarch64:
@@ -147,7 +148,7 @@ jobs:
 
     - uses: actions/upload-artifact@v7
       with:
-        name: linux-aarch64-build
+        name: linux-aarch64
         path: dist/*
 
   macos:
@@ -166,7 +167,7 @@ jobs:
 
     - uses: actions/upload-artifact@v7
       with:
-        name: macos-universal-build
+        name: macos-universal
         path: dist/*
 
   release:
@@ -188,9 +189,9 @@ jobs:
 
     - name: Get release dists built via "make dist"
       run: |
-        mv artifacts/linux-x64-build/sgdboop-linux-x86_64.tar.gz ../../
-        mv artifacts/linux-aarch64-build/sgdboop-linux-aarch64.tar.gz ../../
-        mv artifacts/macos-universal-build/sgdboop-darwin-universal.tar.gz
+        mv artifacts/linux-x64/sgdboop-linux-x86_64.tar.gz ../../
+        mv artifacts/linux-aarch64/sgdboop-linux-aarch64.tar.gz ../../
+        mv artifacts/macos-universal/sgdboop-darwin-universal.zip ../../
 
     - uses: ncipollo/release-action@v1
       with:
@@ -200,4 +201,4 @@ jobs:
         replacesArtifacts: true
         tag: ${{github.event.release.tag_name}}
         commit: ${{github.sha}}
-        artifacts: "sgdboop-linux-x86_64.tar.gz,sgdboop-linux-aarch64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip,sgdboop-darwin-universal.tar.gz"
+        artifacts: "sgdboop-linux-x86_64.tar.gz,sgdboop-linux-aarch64.tar.gz,sgdboop-win64.zip,sgdboop-winarm64.zip,sgdboop-darwin-universal.zip"
