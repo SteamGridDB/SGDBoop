@@ -435,6 +435,8 @@ int createURIprotocol() {
 	strcat(popupMessage, logFilepath);
 	ShowMessageBox("SGDBoop Information", popupMessage);
 	return 0;
+#elif OS_Mac
+	return macSetURLHandler();
 #else
 	return 0;
 #endif
@@ -1428,7 +1430,7 @@ void updateVdf(struct AppStruct* appData, char* filePath) {
 }
 
 // Build as Windows app on windows instead of console
-	#if OS_Windows
+#if OS_Windows
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
 {
 	int argc = __argc;
@@ -1437,7 +1439,23 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 #else
 int main(int argc, char** argv)
 {
-	#endif
+#endif
+
+#ifdef OS_Mac	
+	// if param is not passed directly we're probs being launched via url
+	if (!startsWith(argv[argc > 1 ? 1 : 0], "sgdb://")) {
+		const char* aeUrl = macAwaitEvent();
+		if (aeUrl != NULL) {
+			// override argv if launched via event
+			static char* fakeArgv[2];
+			// The first param is always the binary, second is the sgdb://
+			fakeArgv[0] = argv[0];
+			fakeArgv[1] = (char*)aeUrl;
+			argc = 2;
+			argv = fakeArgv;
+		}
+	}
+#endif
 
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {

@@ -12,3 +12,9 @@ int ShowMessageBoxW(const wchar_t* title, const wchar_t* message);
 // This function is only used in Windows. It shouldn't exist, but we have to deal with Microsoft.
 wchar_t * ConvertStringToUnicode(const char* string);
 #endif
+
+// expose some Objective-C things to be used cause i cant be arsed
+#ifdef __APPLE__
+const char* macAwaitEvent();
+int macSetURLHandler();
+#endif

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <Cocoa/Cocoa.h>
+#include <CoreServices/CoreServices.h>
 
 static NSString *NSStringFromCString(const char *str)
 {
@@ -361,4 +362,80 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
     }
 
     return returnValue;
+}
+
+static void stopRunLoop(void)
+{
+    [NSApp stop:nil];
+    NSEvent* dummy = [NSEvent otherEventWithType:NSEventTypeApplicationDefined location:NSZeroPoint modifierFlags:0 timestamp:0 windowNumber:0 context:nil subtype:0 data1:0 data2:0];
+    [NSApp postEvent:dummy atStart:YES];
+}
+
+@interface SGDBAppDelegate : NSObject <NSApplicationDelegate>
+@property (nonatomic, copy) NSString* URL;
+@end
+
+@implementation SGDBAppDelegate
+
+- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls
+{
+    if (urls.count > 0) {
+        self.URL = [urls[0] absoluteString];
+        stopRunLoop();
+    }
+}
+
+@end
+
+const char* macAwaitEvent()
+{
+    const double timeout = 1.5;
+    NSApplication* app = [NSApplication sharedApplication];
+
+    SGDBAppDelegate* delegate = [[SGDBAppDelegate alloc] init];
+    app.delegate = delegate;
+
+    NSTimer* timeoutTimer = [NSTimer scheduledTimerWithTimeInterval:timeout repeats:NO block:^(NSTimer* t) {
+        (void)t;
+        stopRunLoop();
+    }];
+
+    [app run];
+
+    [timeoutTimer invalidate];
+    app.delegate = nil;
+
+    static char url[512];
+    url[0] = '\0';
+    if (delegate.URL) {
+        strncpy(url, [delegate.URL UTF8String], sizeof(url) - 1);
+        url[sizeof(url) - 1] = '\0';
+        return url;
+    }
+
+    return NULL;
+}
+
+// Set the URL by using the old depricated API cause the new method is annoying to implement
+// https://developer.apple.com/documentation/coreservices/1447760-lssetdefaulthandlerforurlscheme?language=objc
+int macSetURLHandler()
+{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    OSStatus status = LSSetDefaultHandlerForURLScheme(CFSTR("sgdb"), CFSTR("com.steamgriddb.SGDBoop"));
+    if (status == noErr) {
+        CFStringRef currentHandler = LSCopyDefaultHandlerForURLScheme(CFSTR("sgdb"));
+        BOOL alreadyRegistered = (currentHandler != NULL && CFStringCompare(currentHandler, CFSTR("com.steamgriddb.SGDBoop"), 0) == kCFCompareEqualTo);
+        if (currentHandler != NULL) {
+            CFRelease(currentHandler);
+        }
+
+        if (alreadyRegistered) {
+            ShowMessageBox("SGDBoop Information", "SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+        } else {
+            ShowMessageBox("SGDBoop Information", "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
+        }
+    }
+    return 0;
+#pragma clang diagnostic pop
 }
