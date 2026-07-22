@@ -288,8 +288,30 @@ int ShowMessageBox(const char *title, const char *message)
     }
 }
 
-- (id)tableView:(NSTableView*)tableView objectValueForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row
+// Custom vertically centered item + 4 padding
+
+- (NSView*)tableView:(NSTableView*)tableView viewForTableColumn:(NSTableColumn*)tableColumn row:(NSInteger)row
 {
+    static NSString* const identifier = @"SGDBItemCell";
+
+    NSTableCellView* cellView = [tableView makeViewWithIdentifier:identifier owner:self];
+    if (cellView == nil) {
+        cellView = [[NSTableCellView alloc] initWithFrame:NSMakeRect(0, 0, tableColumn.width, tableView.rowHeight)];
+        cellView.identifier = identifier;
+
+        NSTextField* textField = [NSTextField labelWithString:@""];
+        textField.translatesAutoresizingMaskIntoConstraints = NO;
+        textField.lineBreakMode = NSLineBreakByTruncatingTail;
+        [cellView addSubview:textField];
+        cellView.textField = textField;
+
+        [NSLayoutConstraint activateConstraints:@[
+            [textField.leadingAnchor constraintEqualToAnchor:cellView.leadingAnchor constant:4],
+            [textField.trailingAnchor constraintEqualToAnchor:cellView.trailingAnchor constant:-4],
+            [textField.centerYAnchor constraintEqualToAnchor:cellView.centerYAnchor],
+        ]];
+    }
+
     const char* str = NULL;
     switch ([tableView tag]) {
         case 0: str = nonSteamItems[row]; break;
@@ -297,7 +319,9 @@ int ShowMessageBox(const char *title, const char *message)
         case 2: str = steamItems[row]; break;
         default: break;
     }
-    return NSStringFromCString(str);
+    cellView.textField.stringValue = NSStringFromCString(str);
+
+    return cellView;
 }
 
 // NSTableViewDelegate

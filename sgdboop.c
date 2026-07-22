@@ -456,10 +456,12 @@ int deleteURIprotocol() {
 	system("cls");
 	printf("Program unregistered successfully!\n");
 	return 0;
-#else
+#elif OS_Linux
 	// Do nothing on linux
 	printf("A SGDB URL argument is required.\nExample: SGDBoop sgdb://boop/[ASSET_TYPE]/[ASSET_ID]\n");
 	return 1;
+#elif OS_Mac
+	return 0;
 #endif
 }
 
