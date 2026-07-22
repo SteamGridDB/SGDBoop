@@ -291,7 +291,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 }
 
 // Download an asset file
-char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* asset_hash, char* destinationDir, struct AppStruct* nonSteamAppData)
+char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, char* asset_hash, char* destinationDir, struct AppStruct* appData)
 {
 	// Try creating folder
 	if (access(destinationDir, 0) != 0) {
@@ -322,7 +322,7 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	}
 	else if (strcmp(type, "icon") == 0) {
 
-		if (nonSteamAppData != NULL) {
+		if (appData != NULL) {
 			// Add _icon to nonsteam icons
 			strcat(outfilename, "_icon");
 
@@ -334,7 +334,7 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 	}
 
 	// Always save as jpg if icon and replacing default Steam
-	if (nonSteamAppData == NULL && strcmp(type, "icon") == 0) {
+	if (appData == NULL && strcmp(type, "icon") == 0) {
 		strcat(outfilename, ".jpg");
 	} else {
 		// Save as original file extension
@@ -574,14 +574,14 @@ char* getMostRecentUser(char* steamBaseDir) {
 }
 
 // Get Steam's destination directory based on artwork type
-char* getSteamDestinationDir(char* type, struct AppStruct* nonSteamAppData) {
+char* getSteamDestinationDir(char* type, struct AppStruct* appData) {
 
 	char* steamBaseDir = getSteamBaseDir();
 	if (steamBaseDir == NULL) {
 		return NULL;
 	}
 
-	if (strcmp(type, "icon") == 0 && nonSteamAppData == NULL) {
+	if (strcmp(type, "icon") == 0 && appData == NULL) {
 		// If it's a Steam app icon
 		strcat(steamBaseDir, "/appcache/librarycache/");
 	}
@@ -1213,8 +1213,8 @@ struct AppStruct* getMods() {
 	return apps;
 }
 
-// Select a non-steam app from a dropdown list and return its ID
-struct AppStruct* selectNonSteamApp(char* sgdbName, struct AppStruct* appsNonSteam, struct AppStruct* appsMods, struct AppStruct* appsSteam) {
+// Select an app from a dropdown list and return its ID
+struct AppStruct* selectApp(char* sgdbName, struct AppStruct* appsNonSteam, struct AppStruct* appsMods, struct AppStruct* appsSteam) {
 
 	char** nonSteamValues = malloc(sizeof(char*) * _nonSteamAppsCount);
 	for (unsigned int i = 0; i < _nonSteamAppsCount; i++) {
@@ -1321,22 +1321,6 @@ struct AppStruct* selectNonSteamApp(char* sgdbName, struct AppStruct* appsNonSte
 	free(title);
 
 	return appData;
-}
-
-// Create a symlink for a file that has the old nonsteam appid format
-int createOldIdSymlink(struct AppStruct* appData, char* steamDestDir) {
-	char linkPath[MAX_PATH];
-	char targetPath[MAX_PATH];
-
-	strcpy(linkPath, steamDestDir);
-	strcat(linkPath, appData->appid_old);
-	strcat(linkPath, ".jpg");
-
-	strcpy(targetPath, steamDestDir);
-	strcat(targetPath, appData->appid);
-	strcat(targetPath, ".jpg");
-
-	return symlink(targetPath, linkPath);
 }
 
 // Update shortcuts.vdf with the new icon value
@@ -1563,8 +1547,8 @@ int main(int argc, char** argv)
 			exitWithError("API didn't return an appropriate response.", 82);
 		}
 
-		// Use the same nonSteamApp object for all calls
-		struct AppStruct* nonSteamAppData = NULL;
+		// Use the same app object for all calls
+		struct AppStruct* appData = NULL;
 
 		for (int line = 0; line < _apiReturnedLines; line++) {
 
@@ -1603,16 +1587,16 @@ int main(int argc, char** argv)
 					}
 
 					// Show selection screen and return the struct
-					nonSteamAppData = selectNonSteamApp(strstr(app_id, "-") + 1, appsNonSteam, appsMods, appsSteam);
+					appData = selectApp(strstr(app_id, "-") + 1, appsNonSteam, appsMods, appsSteam);
 				}
 
 				// Skip icons for source/goldsource mods
 				if (strcmp(asset_type, "icon") == 0 &&
-					(strcmp(nonSteamAppData->type, "source-mod") == 0 || strcmp(nonSteamAppData->type, "goldsource-mod") == 0)) {
+					(strcmp(appData->type, "source-mod") == 0 || strcmp(appData->type, "goldsource-mod") == 0)) {
 					continue;
 				}
 
-				app_id = nonSteamAppData->appid;
+				app_id = appData->appid;
 			} else if (strcmp(asset_type, "icon") == 0 && strcmp(asset_hash, "notfound") == 0) {
 
 				// If the requested asset is an official Steam icon that was not found in the api, skip this asset
@@ -1620,22 +1604,22 @@ int main(int argc, char** argv)
 			}
 
 			// Get Steam base dir
-			char* steamDestDir = getSteamDestinationDir(asset_type, nonSteamAppData);
+			char* steamDestDir = getSteamDestinationDir(asset_type, appData);
 			if (steamDestDir == NULL) {
 				exitWithError("Could not locate Steam destination directory.", 83);
 			}
 
 			// Download asset file
-			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, asset_hash, steamDestDir, nonSteamAppData);
+			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, asset_hash, steamDestDir, appData);
 			if (outfilename == NULL) {
 				exitWithError("Could not download asset file.", 84);
 			}
 
 			// Non-Steam specific actions
-			if (nonSteamAppData) {
+			if (appData) {
 				// If the asset is a non-Steam icon, add the path to the vdf
 				if (strcmp(asset_type, "icon") == 0) {
-					updateVdf(nonSteamAppData, outfilename);
+					updateVdf(appData, outfilename);
 				}
 
 			}
@@ -1643,7 +1627,7 @@ int main(int argc, char** argv)
 			free(steamDestDir);
 		}
 
-		free(nonSteamAppData);
+		free(appData);
 	}
 
 	return 0;
