@@ -644,17 +644,33 @@ char* getModsPath(const char* type) {
 	strcat(regValueTemp, regValue);
 	strcpy(regValue, regValueTemp);
 
+	// Registry is one dir up from the steam directory
 	char* regFileLocation = getSteamBaseDir();
+	char* regFileLocationTemp = regFileLocation;
+	while (*(regFileLocationTemp + 6) != '\x0') {
+		regFileLocationTemp = strstr_i(regFileLocationTemp, "/steam");
+	}
+	*regFileLocationTemp = '\x0';
 	strcat(regFileLocation, "/registry.vdf");
 	fp_reg = fopen(regFileLocation, "r");
 
 	// If the file doesn't exist, skip this function
 	if (fp_reg == NULL) {
-		char errorMessage[500];
-		sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
-		free(regFileLocation);
-		logError(errorMessage, 96);
-		return NULL;
+
+		// Try the old directory, inside the "steam" directory
+		regFileLocation = getSteamBaseDir();
+		strcat(regFileLocation, "/registry.vdf");
+		fp_reg = fopen(regFileLocation, "r");
+
+
+		// If the old file also doesn't exist, just ignore this type of mods
+		if (fp_reg == NULL) {
+			char errorMessage[500];
+			sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
+			free(regFileLocation);
+			logError(errorMessage, 96);
+			return NULL;
+		}
 	}
 
 	free(regFileLocation);
@@ -701,6 +717,12 @@ struct AppStruct* getSourceMods(const char* type)
 	}
 
 	char* sourceModPath = getModsPath(type);
+
+	if (sourceModPath == NULL)
+	{
+		free(sourceModPath);
+		return NULL;
+	}
 
 	struct dirent* dir;
 	DIR* dr = opendir(sourceModPath);
@@ -995,7 +1017,7 @@ struct AppStruct* getSteamApps() {
 		// Parse the vdf content
 		while ((size_t)(parsingChar - fileContent) < filesize) {
 
-			// Find app name
+			// Find app name and appid
 			appIdStart = sgdb_memmem(parsingChar, filesize - (parsingChar - fileContent), "\x00\x00\x00\x00\x00\x02\x01\x00\x00\x00", 10) + 10;
 			if ((size_t)(appIdStart - fileContent) > filesize) {
 				break;
