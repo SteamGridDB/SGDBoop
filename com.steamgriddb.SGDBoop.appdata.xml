@@ -11,6 +11,13 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.4.1" date="2026-07-23">
+      <description>
+        <ul>
+          <li>Fixed crashes related to invalid mod paths for Linux releases</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.0" date="2026-07-23">
       <description>
         <ul>

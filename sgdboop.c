@@ -12,6 +12,19 @@
 #include "gui-helper.h"
 #include "crc.h"
 
+#define VERSION "1.4.1" // this is also parsed by the makefile for dist
+#define API_VERSION "3"
+#define API_USER_AGENT "SGDBoop/v" VERSION
+
+typedef struct AppStruct
+{
+	int index;
+	char name[300];
+	char appid[128];
+	char appid_old[128];
+	char type[50];
+} AppStruct;
+
 #ifdef __APPLE__
 #define OS_Mac 1
 #endif
@@ -95,19 +108,6 @@ int setWindowsRegistryString(HKEY key, char* subKey, char* valueName, char* valu
 	return (lResult == ERROR_SUCCESS);
 }
 #endif
-
-#define VERSION "1.4.0" // this is also parsed by the makefile for dist
-#define API_VERSION "3"
-#define API_USER_AGENT "SGDBoop/v" VERSION
-
-typedef struct AppStruct
-{
-	int index;
-	char name[300];
-	char appid[128];
-	char appid_old[128];
-	char type[50];
-} AppStruct;
 
 unsigned int _nonSteamAppsCount = 0;
 unsigned int _steamAppsCount = 0;
