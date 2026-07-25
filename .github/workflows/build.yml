@@ -50,6 +50,7 @@ jobs:
           x64/Release/z.dll
           x64/Release/LICENSE.txt
           x64/Release/unregister.bat
+          x64/Release/toggle_debug.bat
 
     - uses: actions/upload-artifact@v7
       with:

@@ -113,11 +113,11 @@
     <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-	<LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-	<LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <EmbedManifest>false</EmbedManifest>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -126,7 +126,8 @@
   <ItemDefinitionGroup>
     <PostBuildEvent>
       <Command>copy /Y "$(ProjectDir)res\unregister.bat" "$(OutDir)"
-  copy /Y "$(ProjectDir)LICENSE" "$(OutDir)LICENSE.txt"</Command>
+  copy /Y "$(ProjectDir)res\toggle_debug.bat" "$(OutDir)"
+ copy /Y "$(ProjectDir)LICENSE" "$(OutDir)LICENSE.txt"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

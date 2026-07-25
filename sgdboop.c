@@ -115,6 +115,7 @@ unsigned int _modsCount = 0;
 unsigned int _sourceModsCount = 0;
 unsigned int _goldSourceModsCount = 0;
 unsigned int _apiReturnedLines = 0;
+unsigned int DEBUG = 0;
 
 // Get logfile path
 char* getLogFilepath() {
@@ -129,7 +130,7 @@ char* getLogFilepath() {
 	}
 	*filename = '\0';
 	strcpy(logFilepath, (const char*)path);
-	strcat(logFilepath, "sgdboop_error.log");
+	strcat(logFilepath, "sgdboop.log");
 #elif OS_Linux
 	if (getenv("XDG_STATE_HOME") != NULL && strlen(getenv("XDG_STATE_HOME")) > 0) {
 		strcpy(logFilepath, getenv("XDG_STATE_HOME"));
@@ -144,17 +145,17 @@ char* getLogFilepath() {
 		mkdir(logFilepath, 0700);
 	}
 
-	strcat(logFilepath, "/sgdboop_error.log");
+	strcat(logFilepath, "/sgdboop.log");
 #elif OS_Mac
 	strcpy(logFilepath, getenv("HOME"));
-	strcat(logFilepath, "/Library/Logs/sgdboop_error.log");
+	strcat(logFilepath, "/Library/Logs/sgdboop.log");
 #endif
 
 	return logFilepath;
 }
 
-// Log error messages
-void logError(const char* error, const int errorCode)
+// Log messages
+void logMessage(const char* message, const int identifier)
 {
 	time_t now = time(0);
 	time_t rawtime;
@@ -164,20 +165,27 @@ void logError(const char* error, const int errorCode)
 
 	char* logFilepath = getLogFilepath();
 
+	char messageType[10];
+	if (identifier == 0) {
+		strcpy(messageType, "[INFO]");
+	} else {
+		strcpy(messageType, "[ERROR]");
+	}
+
 	FILE* logFile = fopen(logFilepath, "a");
 	if (logFile == NULL) {
 		logFile = fopen(logFilepath, "w");
 	}
 	if (logFile) {
-		fprintf(logFile, "%s%s [%d]\n\n", asctime(timeinfo), error, errorCode);
+		fprintf(logFile, "%s%s %s [%d]\n\n", asctime(timeinfo), messageType, message, identifier);
 		fclose(logFile);
-		printf("Created logfile in %s\n", logFilepath);
+		printf("Logged to %s\n", logFilepath);
 	}
 }
 
 // Log an error and exit with the given error code
-void exitWithError(const char* error, const int errorCode) {
-	logError(error, errorCode);
+void exitWithError(const char* errorMessage, const int errorCode) {
+	logMessage(errorMessage, errorCode);
 	exit(errorCode);
 }
 
@@ -411,13 +419,17 @@ int createURIprotocol() {
 		char* ret_val_str = getWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb\\Shell\\Open\\Command", "default");
 		if (!ret_val_str) {
 			ShowMessageBox("SGDBoop Error", "Please run this program as Administrator to register it!\n");
+			free(regeditPath);
+			return 1;
 		} else if (strcmp(ret_val_str, regeditPath) == 0) {
 			ShowMessageBoxW(L"SGDBoop Information", L"SGDBoop is already registered!\nHead over to https://www.steamgriddb.com/boop to continue setup.\n\nIf you moved the program and want to register again, run SGDBoop as Administrator.\n");
+			free(regeditPath);
+			return 0;
 		} else {
 			ShowMessageBoxW(L"SGDBoop Information", L"SGDBoop is already registered at another filepath. Run this SGDBoop executable as Administrator to register it.\n");
+			free(regeditPath);
+			return 1;
 		}
-		free(regeditPath);
-		return 1;
 	}
 
 	setWindowsRegistryString(HKEY_CLASSES_ROOT, "sgdb\\Shell\\Open\\Command", "default", regeditPath);
@@ -432,6 +444,7 @@ int createURIprotocol() {
 	strcpy(popupMessage, "Program registered successfully!\n\nSGDBoop is meant to be ran from a browser!\nHead over to https://www.steamgriddb.com/boop to continue setup.");
 	strcat(popupMessage, "\n\nLog file path: ");
 	strcat(popupMessage, logFilepath);
+	strcat(popupMessage, "\n\nTo enable or disable debugging messages, run toggle_debug.bat");
 	ShowMessageBoxW(L"SGDBoop Information", ConvertStringToUnicode(popupMessage));
 	free(regeditPath);
 	return 0;
@@ -668,7 +681,7 @@ char* getModsPath(const char* type) {
 			char errorMessage[500];
 			sprintf(errorMessage, "File registry.vdf could not be found in %s", regFileLocation);
 			free(regFileLocation);
-			logError(errorMessage, 96);
+			logMessage(errorMessage, 96);
 			return NULL;
 		}
 	}
@@ -1465,6 +1478,25 @@ void updateVdf(struct AppStruct* appData, char* filePath) {
 	}
 }
 
+char* getExecutableDirectory(char* executablePath) {
+	char separator[2];
+#if defined(OS_Windows)
+	strcpy(separator, "\\");
+#else
+	strcpy(separator, "/");
+#endif
+
+	char* executableDir = malloc(MAX_PATH), *executableDirTemp = executableDir;
+	strcpy(executableDir, executablePath);
+
+	while (strstr(executableDirTemp, separator)) {
+		executableDirTemp = strstr(executableDirTemp, separator) + 1;
+	}
+
+	*executableDirTemp = '\x0';
+	return executableDir;
+}
+
 // Build as Windows app on windows instead of console
 #if OS_Windows
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
@@ -1493,8 +1525,24 @@ int main(int argc, char** argv)
 	}
 #endif
 
+	// Check for debug enablers
+	DEBUG = getenv("SGDBOOP_DEBUG") != NULL && !strcmp(getenv("SGDBOOP_DEBUG"), "1");
+	char debugFilePath[MAX_PATH];
+	strcpy(debugFilePath, getExecutableDirectory(argv[0]));
+	strcat(debugFilePath, "/SGDBOOP_DEBUG");
+	FILE* f = fopen(debugFilePath, "r");
+	if (f != NULL) {
+		DEBUG = 1;
+		fclose(f);
+	}
+
+	if (DEBUG) logMessage("Enabled debugging log", 0);
+
 	// If no arguments were given, register the program
 	if (argc == 0 || (argc == 1 && !startsWith(argv[0], "sgdb://"))) {
+
+		if (DEBUG) logMessage("Attempting to register URI protocol", 0);
+
 		// Create the sgdb URI protocol
 		if (createURIprotocol() == 1) {
 			exitWithError("Could not create URI protocol.", 80);
@@ -1504,6 +1552,9 @@ int main(int argc, char** argv)
 
 		// If argument is unregister, unregister and exit
 		if (strcmp(argv[1], "unregister") == 0) {
+
+			if (DEBUG) logMessage("Attempting to unregister URI protocol", 0);
+
 			if (deleteURIprotocol() == 1) {
 				exitWithError("Could not unregister the URI protocol.", 85);
 			}
@@ -1519,16 +1570,28 @@ int main(int argc, char** argv)
 
 		// Test mode
 		if (strcmp(argv[1], "sgdb://boop/test") == 0) {
+
+			if (DEBUG) logMessage("Attempting to show test popup, starting with getSteamBaseDir.", 0);
 			char* steamBaseDir = getSteamBaseDir();
+
+			if (DEBUG) logMessage("Running getLogFilepath", 0);
 			char* logFilepath = getLogFilepath();
+
+			if (DEBUG) logMessage("Running getMostRecentUserEx", 0);
 			char* mostRecentUser = getMostRecentUserEx(steamBaseDir, 0);
+
+			if (DEBUG) logMessage("Running getModsPath(\"source\")", 0);
 			char* sourceModPath = getModsPath("source");
+
+			if (DEBUG) logMessage("Running getModsPath(\"goldsource\")", 0);
 			char* goldSrcModPath = getModsPath("goldsource");
 
-			char* message = malloc(MAX_PATH);
+			if (DEBUG) logMessage("Prepping test message", 0);
+
+			char* message = malloc(1024);
 			strcpy(message, "(ノ◕ヮ◕)ノ*:・゚✧   SGDBoop is working!  ★・゚:*ヽ(◕ヮ◕ヽ)\n\n");
 			strcat(message, "Version: " VERSION "\n");
-			strcat(message, "Last logged in user: ");
+			strcat(message, "\nLast logged in user: ");
 			strcat(message, mostRecentUser != NULL ? mostRecentUser : "(not found)");
 			strcat(message, "\n\n");
 			strcat(message, "Steam directory:\n");
@@ -1542,6 +1605,10 @@ int main(int argc, char** argv)
 			strcat(message, "\n\n");
 			strcat(message, "Log file:\n");
 			strcat(message, logFilepath);
+			strcat(message, "\n\nDebug logging: ");
+			strcat(message, DEBUG ? "Enabled" : "Disabled");
+
+			if (DEBUG) logMessage("Showing test message", 0);
 
 			// Show a message
 			#if OS_Windows
@@ -1549,8 +1616,15 @@ int main(int argc, char** argv)
 			#else
 			ShowMessageBox("SGDBoop Test", message);
 			#endif
+
+			if (DEBUG) logMessage("Showed test message", 0);
+			
+			free(message);
 			return 0;
 		}
+
+
+		if (DEBUG) logMessage("Extracting params from argument.", 0);
 
 		// Get the params from the string
 		char* types = strstr(argv[1], "sgdb://boop/") + strlen("sgdb://boop/");
@@ -1568,6 +1642,8 @@ int main(int argc, char** argv)
 			strcpy(mode, "default");
 		}
 
+		if (DEBUG) logMessage("Getting asset URL.", 0);
+
 		// Get asset URL
 		char*** apiValues = callAPI(types, grid_ids, mode);
 		if (apiValues == NULL) {
@@ -1577,7 +1653,11 @@ int main(int argc, char** argv)
 		// Use the same app object for all calls
 		struct AppStruct* appData = NULL;
 
+		if (DEBUG) logMessage("Running main boop loop", 0);
+
 		for (int line = 0; line < _apiReturnedLines; line++) {
+
+			if (DEBUG) logMessage("Extracting api response values", 0);
 
 			char* app_id = apiValues[line][0];
 			char* orientation = apiValues[line][1];
@@ -1585,9 +1665,18 @@ int main(int argc, char** argv)
 			char* asset_type = apiValues[line][3];
 			char* asset_hash = apiValues[line][4];
 
+			if (DEBUG) {
+				logMessage("Extracting api response values", 0);
+				char message[1024];
+				sprintf(message, "app_id: %s, asset_type: %s, orientation: %s, assetUrl: %s, asset_hash: %s\n", app_id, asset_type, orientation, assetUrl, asset_hash);
+				logMessage(message, 0);
+			}
 
 			// If the game is a non-steam app, select an imported app
 			if (startsWith(app_id, "nonsteam-")) {
+
+				if (DEBUG) logMessage("Found non-steam appid", 0);
+
 				// Select app once
 				if (line < 1) {
 					// Do not include mods in the dropdown list if the only asset selected was an icon
@@ -1596,12 +1685,24 @@ int main(int argc, char** argv)
 						includeMods = FALSE;
 					}
 
-					// Get non-steam apps
+					// Get apps
+					if (DEBUG) logMessage("Running getNonSteamApps", 0);
 					struct AppStruct* appsNonSteam = getNonSteamApps();
+
+					if (DEBUG) logMessage("Running getSteamApps", 0);
 					struct AppStruct* appsSteam = getSteamApps();
+
 					struct AppStruct* appsMods = NULL;
 					if (includeMods) {
+						if (DEBUG) logMessage("Running getMods", 0);
 						appsMods = getMods();
+					}
+
+					if (DEBUG) {
+						logMessage("Assessing found apps", 0);
+						char message[1024];
+						sprintf(message, "_nonSteamAppsCount: %u, _modsCount: %u, _steamAppsCount: %u\n", _nonSteamAppsCount, _modsCount, _steamAppsCount);
+						logMessage(message, 0);
 					}
 
 					// Exit with an error if nothing found
@@ -1612,6 +1713,8 @@ int main(int argc, char** argv)
 						free(appsMods);
 						exitWithError("Could not find any non-Steam apps or mods.", 91);
 					}
+
+					if (DEBUG) logMessage("Running selectApp", 0);
 
 					// Show selection screen and return the struct
 					appData = selectApp(strstr(app_id, "-") + 1, appsNonSteam, appsMods, appsSteam);
@@ -1631,12 +1734,20 @@ int main(int argc, char** argv)
 			}
 
 			// Get Steam base dir
+			if (DEBUG) logMessage("Running getSteamDestinationDir", 0);
 			char* steamDestDir = getSteamDestinationDir(asset_type, appData);
 			if (steamDestDir == NULL) {
 				exitWithError("Could not locate Steam destination directory.", 83);
 			}
 
 			// Download asset file
+			if (DEBUG) {
+				logMessage("Preparing to download asset.", 0);
+				char message[1024];
+				sprintf(message, "app_id: %s, asset_type: %s, orientation: %s, assetUrl: %s, asset_hash: %s, steamDestDir: %s\n", app_id, asset_type, orientation, assetUrl, asset_hash, steamDestDir);
+				logMessage(message, 0);
+			}
+
 			char* outfilename = downloadAssetFile(app_id, assetUrl, asset_type, orientation, asset_hash, steamDestDir, appData);
 			if (outfilename == NULL) {
 				exitWithError("Could not download asset file.", 84);
@@ -1646,6 +1757,7 @@ int main(int argc, char** argv)
 			if (appData) {
 				// If the asset is a non-Steam icon, add the path to the vdf
 				if (strcmp(asset_type, "icon") == 0) {
+					if (DEBUG) logMessage("Running updateVdf", 0);
 					updateVdf(appData, outfilename);
 				}
 
@@ -1653,6 +1765,8 @@ int main(int argc, char** argv)
 
 			free(steamDestDir);
 		}
+
+		if (DEBUG) logMessage("Finished main boop loop.", 0);
 
 		free(appData);
 	}

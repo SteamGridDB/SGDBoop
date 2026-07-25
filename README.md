@@ -70,6 +70,11 @@ These packages are maintained and updated by the community.
 
 </details>
 
+## Debugging
+
+To enable debugging messages in the log file, set the `SGDBOOP_DEBUG` environment variable to 1, or create a `SGDBOOP_DEBUG` (without any extension) file next to the executable.
+
+------
 ### Once installed, head over to <https://www.steamgriddb.com/boop> to enable the "**BOOP**" buttons!
 
 # Credits
