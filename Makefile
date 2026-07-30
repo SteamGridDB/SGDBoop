@@ -19,6 +19,11 @@ all: build
 .PHONY: build
 build: build-$(OS_NAME)
 	@echo "Built for target: $(OS_NAME)"
+
+.PHONY: test
+test:
+	$(CC) -Wall -Wextra -I. tests/string-helpers-test.c string-helpers.c -o tests/string-helpers-test
+	./tests/string-helpers-test
 	
 .PHONY: build-linux build-darwin
 build-linux:
@@ -81,4 +86,4 @@ print-dists-darwin:
 
 .PHONY: clean
 clean:
-	rm -rf SGDBoop.app SGDBoop dist
+	rm -rf SGDBoop.app SGDBoop dist tests/string-helpers-test

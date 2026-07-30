@@ -165,6 +165,32 @@ int strcmp_i(const char * a, const char * b)
 	}
 }
 
+int matchesFilter(const char* value, const char* filter)
+{
+	if (value == NULL || filter == NULL) return 0;
+	if (*filter == '\0') return 1;
+
+	for (; *value != '\0'; value++)
+	{
+		const char* valueChar = value;
+		const char* filterChar = filter;
+
+		while (
+			*valueChar != '\0'
+			&& *filterChar != '\0'
+			&& tolower((unsigned char)*valueChar) == tolower((unsigned char)*filterChar)
+		)
+		{
+			valueChar++;
+			filterChar++;
+		}
+
+		if (*filterChar == '\0') return 1;
+	}
+
+	return 0;
+}
+
 // Custom memmem
 // https://stackoverflow.com/a/52989329
 const unsigned char* sgdb_memmem(const void* haystack, size_t haystack_len,

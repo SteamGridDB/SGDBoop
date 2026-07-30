@@ -3,19 +3,24 @@
 
 #include "gui-helper.h"
 #include "resource.h"
+#include "string-helpers.h"
 
 const wchar_t* szClass = L"winWindowClass";
 
 #define IDC_BUTTON_OK 101
 #define IDC_BUTTON_CANCEL 102
+#define IDC_LIST_GAMES 103
+#define IDC_FILTER_GAMES 104
 
 static HWND hWndList;
+static HWND hWndFilter;
 static HWND hWndButtonOk;
 static HWND hWndButtonCancel;
 static int selected_index = -1;
 static HWND hWndTab;
 static const char** tabLists[3];
 static int tabCounts[3];
+static int tabSelections[3] = { -1, -1, -1 };
 
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
@@ -48,13 +53,23 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 			tie.pszText = "Steam";
 			TabCtrl_InsertItem(hWndTab, 2, &tie);
 
+			hWndFilter = CreateWindowExA(
+				WS_EX_CLIENTEDGE,
+				WC_EDIT, NULL,
+				ES_AUTOHSCROLL | WS_CHILD | WS_TABSTOP | WS_VISIBLE,
+				0, 0, 100, 25,
+				hWnd, (HMENU)IDC_FILTER_GAMES, GetModuleHandle(NULL), NULL
+			);
+			SendMessage(hWndFilter, WM_SETFONT, (WPARAM)hfFont, 0);
+			SendMessageW(hWndFilter, EM_SETCUEBANNER, TRUE, (LPARAM)L"Filter games...");
+
 			// ListBox
 			hWndList = CreateWindowExA(
 				WS_OVERLAPPED, // no style to look like it's inside tabs
 				WC_LISTBOX, NULL,
 				LBS_NOTIFY | WS_CHILD | WS_VISIBLE | WS_VSCROLL,
 				0, 0, 100, 100,
-				hWnd, NULL, GetModuleHandle(NULL), NULL
+				hWnd, (HMENU)IDC_LIST_GAMES, GetModuleHandle(NULL), NULL
 			);
 			SendMessage(hWndList, WM_SETFONT, (WPARAM)hfFont, 0);
 
@@ -93,8 +108,10 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 			GetClientRect(hWndTab, &rcTab);
 			TabCtrl_AdjustRect(hWndTab, FALSE, &rcTab);
 
+			SetWindowPos(hWndFilter, NULL, rcTab.left + 10, rcTab.top + 10, rcTab.right - rcTab.left - 20, 24, SWP_NOZORDER);
+
 			// List inside tab
-			SetWindowPos(hWndList, NULL, rcTab.left + 10, rcTab.top + 10, rcTab.right - rcTab.left, rcTab.bottom - rcTab.top, SWP_NOZORDER);
+			SetWindowPos(hWndList, NULL, rcTab.left + 10, rcTab.top + 44, rcTab.right - rcTab.left - 20, rcTab.bottom - rcTab.top - 54, SWP_NOZORDER);
 
 			// OK and Cancel buttons
 			SetWindowPos(hWndButtonOk, NULL, rcClient.right - (80 * 2), rcClient.bottom - 45, 70, 30, SWP_NOZORDER);
@@ -113,11 +130,20 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 		}
 
 		case WM_COMMAND:
-			switch (HIWORD(wParam))
+			if (LOWORD(wParam) == IDC_LIST_GAMES && HIWORD(wParam) == LBN_SELCHANGE)
 			{
-				case LBN_SELCHANGE:
+				LRESULT row = SendMessage(hWndList, LB_GETCURSEL, 0, 0);
+				if (row != LB_ERR)
+				{
+					int tabIndex = TabCtrl_GetCurSel(hWndTab);
+					tabSelections[tabIndex] = (int)SendMessage(hWndList, LB_GETITEMDATA, row, 0);
 					EnableWindow(hWndButtonOk, TRUE);
-					break;
+				}
+			}
+
+			if (LOWORD(wParam) == IDC_FILTER_GAMES && HIWORD(wParam) == EN_CHANGE)
+			{
+				PopulateListBox(TabCtrl_GetCurSel(hWndTab));
 			}
 
 			switch (LOWORD(wParam))
@@ -127,7 +153,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPara
 					LRESULT res = SendMessage(hWndList, LB_GETCURSEL, (WPARAM)NULL, (LPARAM)NULL);
 					if (res != LB_ERR)
 					{
-						selected_index = res;
+						selected_index = (int)SendMessage(hWndList, LB_GETITEMDATA, res, 0);
 						int tabIndex = TabCtrl_GetCurSel(hWndTab);
 						for (int i = 0; i < tabIndex; i++)
 						{
@@ -181,6 +207,10 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	tabLists[0] = nonSteamList;
 	tabLists[1] = modsList;
 	tabLists[2] = steamList;
+	selected_index = -1;
+	for (int i = 0; i < 3; i++) {
+		tabSelections[i] = -1;
+	}
 
 	MSG Msg;
 	HWND hWnd;
@@ -233,12 +263,17 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	int tabSize = sizeof(tabCounts) / sizeof(tabCounts[0]);
 	for (tabIndex = 0; tabIndex < tabSize; tabIndex++)
 	{
-		if (tabCounts[tabIndex] < selection) {
+		if (selection >= tabCounts[tabIndex]) {
 			selection -= tabCounts[tabIndex];
 		} else {
 			break;
 		}
 	}
+	if (tabIndex >= tabSize) {
+		tabIndex = 0;
+		selection = -1;
+	}
+	tabSelections[tabIndex] = selection;
 	PopulateListBoxWithSelection(tabIndex, selection);
 
 	// Show window and get all events
@@ -257,25 +292,34 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 // Load values into current ListBox with a highlighted option
 void PopulateListBoxWithSelection(int tabIndex, int selection)
 {
+	char filter[256];
+	GetWindowTextA(hWndFilter, filter, sizeof(filter));
+
 	SendMessageW(hWndList, LB_RESETCONTENT, 0, 0);
 	TabCtrl_SetCurSel(hWndTab, tabIndex);
 
 	for (int i = 0; i < tabCounts[tabIndex]; ++i)
 	{
+		if (!matchesFilter(tabLists[tabIndex][i], filter)) {
+			continue;
+		}
+
 		wchar_t* unicode = ConvertStringToUnicode(tabLists[tabIndex][i]);
-		SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)unicode);
+		LRESULT row = SendMessageW(hWndList, LB_ADDSTRING, 0, (LPARAM)unicode);
+		SendMessage(hWndList, LB_SETITEMDATA, row, i);
+		if (selection == i) {
+			SendMessage(hWndList, LB_SETCURSEL, row, 0);
+		}
 		free(unicode);
 	}
 
-	if (selection > -1) {
-		SendMessageW(hWndList, LB_SETCURSEL, selection, 0);
-	}
+	EnableWindow(hWndButtonOk, SendMessage(hWndList, LB_GETCURSEL, 0, 0) != LB_ERR);
 }
 
-// Load valuies into current ListBox without a highlighted option
+// Load values into the current ListBox while preserving its selection
 void PopulateListBox(int tabIndex)
 {
-	PopulateListBoxWithSelection(tabIndex, -1);
+	PopulateListBoxWithSelection(tabIndex, tabSelections[tabIndex]);
 }
 
 
