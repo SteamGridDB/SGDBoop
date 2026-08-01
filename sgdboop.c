@@ -12,7 +12,7 @@
 #include "gui-helper.h"
 #include "crc.h"
 
-#define VERSION "1.4.1" // this is also parsed by the makefile for dist
+#define VERSION "1.4.2" // this is also parsed by the makefile for dist
 #define API_VERSION "3"
 #define API_USER_AGENT "SGDBoop/v" VERSION
 

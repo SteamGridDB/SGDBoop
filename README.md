@@ -2,20 +2,20 @@
 
 SGDBoop is a tool that automatically applies assets from [SteamGridDB](https://www.steamgriddb.com/) directly to your Steam library, removing the need to download and set them manually.
 
-# Instructions
+# Setup Instructions
 
-## Set up for Windows
+## Windows
 
-* Download the latest [sgdboop-win64.zip](https://github.com/SteamGridDB/SGDBoop/releases/latest/download/sgdboop-win64.zip)
-* Extract the program in any directory you prefer
-* Run it once with Administrator privileges (can be done via Right Click -> Run as Administrator)
+1. Download the latest [sgdboop-win64.zip](https://github.com/SteamGridDB/SGDBoop/releases/latest/download/sgdboop-win64.zip)
+2. Extract the program in any directory you prefer
+3. Run it once with Administrator privileges (can be done via Right Click -> Run as Administrator)
 
 To remove from your system and unregister the URL handler:
 
 1. Run `unregister.bat` as Administrator
 2. Delete all the files that came with the program
 
-## Set up for Linux
+## Linux
 
 <details>
   <summary>Flatpak</summary>
@@ -63,19 +63,20 @@ These packages are maintained and updated by the community.
 
 </details>
 
-## Set up for MacOS
+## MacOS
 
-<details>
-  <summary>brew</summary>
+1. Download the latest [sgdboop-darwin-universal.zip](https://github.com/SteamGridDB/SGDBoop/releases/latest/download/sgdboop-darwin-universal.zip)
+2. Extract `SGDBoop.app` to the `/Applications` directory
+3. Open Terminal and run: `xattr -dr com.apple.quarantine /Applications/SGDBoop.app`
+4. Run SGDBoop from Apps at least once
 
-</details>
+### Once installed, head over to <https://www.steamgriddb.com/boop> to enable the "**BOOP**" buttons!
+
+------
 
 ## Debugging
 
 To enable debugging messages in the log file, set the `SGDBOOP_DEBUG` environment variable to 1, or create a `SGDBOOP_DEBUG` (without any extension) file next to the executable.
-
-------
-### Once installed, head over to <https://www.steamgriddb.com/boop> to enable the "**BOOP**" buttons!
 
 # Credits
 

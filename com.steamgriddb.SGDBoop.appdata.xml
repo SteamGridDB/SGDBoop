@@ -11,6 +11,15 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.4.2" date="2026-08-02">
+      <description>
+        <ul>
+          <li>Fixed an overflow bug in the test popup that was causing it not to show up</li>
+          <li>Added basic debugging logging</li>
+          <li>Rename log file to sgdboop.log</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.1" date="2026-07-23">
       <description>
         <ul>
