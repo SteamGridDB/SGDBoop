@@ -258,7 +258,7 @@ char*** callAPI(char* grid_types, char* grid_ids, char* mode)
 			strcat(message, s.ptr);
 
 			if (startsWith(s.ptr, "error-")) {
-				strreplace(message, "error-", " ");
+				message = strreplace(message, "error-", "");
 				ShowMessageBox("SGDBoop Error", message);
 			}
 			exitWithError(message, (int)http_code);
