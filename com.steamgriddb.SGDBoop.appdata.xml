@@ -11,12 +11,21 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
-    <release version="1.4.2" date="2026-08-02">
+    <release version="1.4.3" date="2026-08-02">
+      <description>
+        <ul>
+          <li>Fixed some Steam apps not showing in Steam tab.</li>
+          <li>Fixed Steam app titles showing app name instead of Store name. Now properly matches the name shown in the client.</li>
+          <li>Fixed memory leak when showing API error.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.4.2" date="2026-08-01">
       <description>
         <ul>
           <li>Fixed an overflow bug in the test popup that was causing it not to show up</li>
           <li>Added basic debugging logging</li>
-          <li>Rename log file to sgdboop.log</li>
+          <li>Renamed log file to sgdboop.log</li>
         </ul>
       </description>
     </release>
