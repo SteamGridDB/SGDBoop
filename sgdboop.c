@@ -944,26 +944,29 @@ uint32_t* getOwnedAppids(unsigned int* count) {
 		fclose(fp);
 		const unsigned char* parsingChar = fileContent;
 		uint32_t appIdInt;
-		unsigned int totalAppidCount;
 		const unsigned char* appidBlockStart, *nextAppidBlock, *appId;
+		unsigned char* message[512];
 
 		// Parse the vdf content
 		while ((size_t)(parsingChar - fileContent) < filesize) {
 
 			// Find appids block
-			appidBlockStart = sgdb_memmem(parsingChar, filesize - (parsingChar - fileContent), "appids\x00\x02\x30", 9) + 6;
+			appidBlockStart = sgdb_memmem(parsingChar, filesize - (parsingChar - fileContent), "appids\x00\x02\x30\x00", 10) + 7;
 			if ((size_t)(appidBlockStart - fileContent) > filesize) {
 				break;
 			}
-			nextAppidBlock = sgdb_memmem(appidBlockStart, filesize - (appidBlockStart - fileContent), "appids\x00\x02\x30", 9);
+			nextAppidBlock = sgdb_memmem(appidBlockStart, filesize - (appidBlockStart - fileContent), "appids\x00\x02\x30\x00", 10);
 			if (nextAppidBlock - fileContent > filesize) {
 				nextAppidBlock = fileContent + filesize;
 			}
 
-			unsigned int currentAppidCount = 0;
+			unsigned int appIdCount = 0;
+			unsigned char appIdIndex[10];
+
 			appId = appidBlockStart;
-			while (appId[0] == 0x00 && appId[1] == 0x02 && appId[2] == 0x30 + currentAppidCount && appId[3] == 0x00) {
-				appId += 4;
+			while (appId[0] == 0x02 && sprintf(appIdIndex, "%d", appIdCount) && startsWith((appId + 1), appIdIndex)) {
+
+				appId += 2 + strlen(appIdIndex);
 				appIdInt = (uint32_t)appId[0] |
 					((uint32_t)appId[1] << 8) |
 					((uint32_t)appId[2] << 16) |
@@ -973,13 +976,24 @@ uint32_t* getOwnedAppids(unsigned int* count) {
 				ownedAppids[(*count)++] = appIdInt;
 
 				appId += 4;
-				currentAppidCount++;
+				appIdCount++;
+
+				if (DEBUG) {
+					sprintf(message, "Found owned AppID: %d\n", appIdInt);
+					logMessage(message, 0);
+				}
 			}
 
 			parsingChar = nextAppidBlock;
 		}
 
 		free(fileContent);
+	}
+
+	if (DEBUG) {
+		unsigned char* message[512];
+		sprintf(message, "Total owned apps: %d\n", *count);
+		logMessage(message, 0);
 	}
 
 	return ownedAppids;
@@ -1025,7 +1039,8 @@ struct AppStruct* getSteamApps() {
 		const unsigned char* parsingChar = fileContent;
 		uint32_t appIdInt;
 		unsigned char appidString[32];
-		const unsigned char *appIdStart, *appIdEnd, *appNameStart, *nextAppId, *gameTypeMatch;
+		const unsigned char *appIdStart, *appIdEnd, *appNameStart, * appStoreName, *nextAppId, *gameTypeMatch;
+		unsigned char* message[1024];
 
 		// Parse the vdf content
 		while ((size_t)(parsingChar - fileContent) < filesize) {
@@ -1053,9 +1068,14 @@ struct AppStruct* getSteamApps() {
 			}
 
 			// Check if it's game type
-			gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x00\x01\x05\x00\x00\x00game", 9) + 9;
+			gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x01\x05\x00\x00\x00game", 9) + 9;
 			if (gameTypeMatch > nextAppId || (size_t)gameTypeMatch == 9) {
-				gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x00\x01\x05\x00\x00\x00Game", 9) + 9;
+				gameTypeMatch = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x01\x05\x00\x00\x00Game", 9) + 9;
+			}
+
+			appStoreName = sgdb_memmem(appNameStart, nextAppId - appNameStart, "\x07\x02\x00\x00\x01\x91\x01\x00\x00", 9) + 9;
+			if ((size_t)appStoreName != 9 && appStoreName < nextAppId) {
+				appNameStart = appStoreName;
 			}
 
 			if (gameTypeMatch < nextAppId && (size_t)gameTypeMatch != 9) {
@@ -1081,6 +1101,11 @@ struct AppStruct* getSteamApps() {
 					strcpy(apps[_steamAppsCount].appid_old, appidString);
 					strcpy(apps[_steamAppsCount].type, "steam-app");
 					++_steamAppsCount;
+
+					if (DEBUG) {
+						sprintf(message, "Found app: [%s] \"%s\"\n", appidString, appNameStart);
+						logMessage(message, 0);
+					}
 				}
 			}
 
