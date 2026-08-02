@@ -945,7 +945,7 @@ uint32_t* getOwnedAppids(unsigned int* count) {
 		const unsigned char* parsingChar = fileContent;
 		uint32_t appIdInt;
 		const unsigned char* appidBlockStart, *nextAppidBlock, *appId;
-		unsigned char* message[512];
+		char message[512];
 
 		// Parse the vdf content
 		while ((size_t)(parsingChar - fileContent) < filesize) {
@@ -991,7 +991,7 @@ uint32_t* getOwnedAppids(unsigned int* count) {
 	}
 
 	if (DEBUG) {
-		unsigned char* message[512];
+		char message[512];
 		sprintf(message, "Total owned apps: %d\n", *count);
 		logMessage(message, 0);
 	}
@@ -1040,7 +1040,7 @@ struct AppStruct* getSteamApps() {
 		uint32_t appIdInt;
 		unsigned char appidString[32];
 		const unsigned char *appIdStart, *appIdEnd, *appNameStart, * appStoreName, *nextAppId, *gameTypeMatch;
-		unsigned char* message[1024];
+		char message[1024];
 
 		// Parse the vdf content
 		while ((size_t)(parsingChar - fileContent) < filesize) {
