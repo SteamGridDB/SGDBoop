@@ -737,6 +737,12 @@ struct AppStruct* getSourceMods(const char* type)
 		return NULL;
 	}
 
+	char debug_message[1024];
+	if (DEBUG) {
+		sprintf(debug_message, "Opening mods path: %s\n", sourceModPath);
+		logMessage(debug_message, 0);
+	}
+
 	struct dirent* dir;
 	DIR* dr = opendir(sourceModPath);
 
@@ -785,12 +791,28 @@ struct AppStruct* getSourceMods(const char* type)
 
 		int foundGameKey = 0;
 
+		if (DEBUG) {
+			sprintf(debug_message, "Reading file: %s\n", filepath);
+			logMessage(debug_message, 0);
+		}
+
 		while ((read = readLine(&line, &len, fp)) != -1) {
 
 			// If line contains the "game" key, get the mod's name and create the struct entry
 			unsigned char* commentChar = strstr(line, "//");
 			unsigned char* nameStartChar = strstr_i(line, "game");
 			unsigned char* steamAppIdStartChar = strstr_i(line, "SteamAppId");
+
+
+			if (DEBUG && nameStartChar > 0) {
+				sprintf(debug_message, "Found nameStartChar: %s\n", nameStartChar);
+				logMessage(debug_message, 0);
+			}
+
+			if (DEBUG && steamAppIdStartChar > 0) {
+				sprintf(debug_message, "Found steamAppIdStartChar: %s\n", steamAppIdStartChar);
+				logMessage(debug_message, 0);
+			}
 
 			// Make sure to first capture the "game" key, properly
 			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
@@ -873,6 +895,11 @@ struct AppStruct* getSourceMods(const char* type)
 	}
 
 	struct AppStruct* sourceMods = malloc(sizeof(AppStruct) * modsCount);
+
+	if (DEBUG) {
+		sprintf(debug_message, "Found %u mods inside getSourceMods(%s)\n", modsCount, type);
+		logMessage(debug_message, 0);
+	}
 
 	for (unsigned int i = 0; i < modsCount; i++) {
 		sourceMods[i].index = _modsCount;
@@ -1251,10 +1278,27 @@ struct AppStruct* getNonSteamApps() {
 }
 
 struct AppStruct* getMods() {
+	if (DEBUG) logMessage("Running getSourceMods(\"source\")", 0);
 	struct AppStruct* sourceMods = getSourceMods("source");
+
+	if (DEBUG) logMessage("Running getSourceMods(\"goldsource\")", 0);
 	struct AppStruct* goldSourceMods = getSourceMods("goldsource");
+
 	struct AppStruct* apps = malloc(sizeof(AppStruct) * (_sourceModsCount + _goldSourceModsCount));
+
+	char debug_message[1024];
+	if (DEBUG) {
+		sprintf(debug_message, "Found %u source mods and %u goldsrc mods\n", _sourceModsCount, _goldSourceModsCount);
+		logMessage(debug_message, 0);
+	}
+
 	for (unsigned int i = 0; i < _sourceModsCount; i++) {
+
+		if (DEBUG) {
+			sprintf(debug_message, "Adding source mod #%u: %s\n", i, sourceMods[i].name);
+			logMessage(debug_message, 0);
+		}
+
 		apps[_modsCount].index = _modsCount;
 		strcpy(apps[_modsCount].name, sourceMods[i].name);
 		strcpy(apps[_modsCount].appid_old, sourceMods[i].appid_old);
@@ -1264,6 +1308,12 @@ struct AppStruct* getMods() {
 		_modsCount++;
 	}
 	for (unsigned int i = 0; i < _goldSourceModsCount; i++) {
+
+		if (DEBUG) {
+			sprintf(debug_message, "Adding source mod #%u: %s\n", i, sourceMods[i].name);
+			logMessage(debug_message, 0);
+		}
+
 		apps[_modsCount].index = _modsCount;
 		strcpy(apps[_modsCount].name, goldSourceMods[i].name);
 		strcpy(apps[_modsCount].appid_old, goldSourceMods[i].appid_old);
