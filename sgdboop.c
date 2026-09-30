@@ -814,9 +814,9 @@ struct AppStruct* getSourceMods(const char* type)
 			}
 
 			// Make sure to first capture the "game" key, properly
-			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
+			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1)) || *(nameStartChar - 1) == '"') && (isspace(*(nameStartChar + 4)) || *(nameStartChar + 4) == '"')) {
 
-				nameStartChar = strstr(line, "\"") + 1;
+				nameStartChar = strstr(nameStartChar + 5, "\"") + 1;
 				if (nameStartChar == 1) {
 					continue;
 				}
