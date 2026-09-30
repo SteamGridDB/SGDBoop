@@ -817,6 +817,9 @@ struct AppStruct* getSourceMods(const char* type)
 			if (nameStartChar > 0 && commentChar == 0 && !foundGameKey && ((char *) nameStartChar == line || isspace(*(nameStartChar - 1))) && isspace(*(nameStartChar + 4))) {
 
 				nameStartChar = strstr(line, "\"") + 1;
+				if (nameStartChar == 1) {
+					continue;
+				}
 				unsigned char* nameEndChar = strstr(nameStartChar, "\"");
 				*nameEndChar = '\0';
 
