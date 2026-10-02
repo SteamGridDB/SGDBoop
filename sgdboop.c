@@ -393,6 +393,8 @@ char* downloadAssetFile(char* app_id, char* url, char* type, char* orientation, 
 			free(outfilename_temp);
 			return outfilename;
 		}
+
+		free(outfilename_temp);
 	}
 
 	free(outfilename);
@@ -1840,6 +1842,7 @@ int main(int argc, char** argv)
 
 			}
 
+			free(outfilename);
 			free(steamDestDir);
 		}
 
