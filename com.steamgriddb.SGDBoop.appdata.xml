@@ -11,6 +11,16 @@
   <project_license>Zlib</project_license>
   <content_rating type="oars-1.0" />
   <releases>
+    <release version="1.4.4" date="2026-10-04">
+      <description>
+        <ul>
+          <li>Fixed icons not applying.</li>
+          <li>Fixed some Source mods not being detected.</li>
+          <li>Added more debug info for mods.</li>
+          <li>Fixed some memory leaks.</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.3" date="2026-08-02">
       <description>
         <ul>
