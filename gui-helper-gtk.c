@@ -1,4 +1,5 @@
 #include "gui-helper.h"
+#include "string-helpers.h"
 #include <gtk/gtk.h>
 
 int ShowMessageBox(const char* title, const char* message)
@@ -32,6 +33,7 @@ enum {
 
 typedef struct {
 	GtkWidget* treeview;
+	GtkTreeModelFilter* filter;
 	int selection;
 	int selected_index;
 	int tab_index;
@@ -43,17 +45,69 @@ typedef struct {
 	TabData* tab3;
 } TabsContext;
 
+static gboolean filter_visible(GtkTreeModel* model, GtkTreeIter* iter, gpointer data)
+{
+	gchar* item;
+	gtk_tree_model_get(model, iter, COLUMN_ITEM, &item, -1);
+	const char* filter = gtk_entry_get_text(GTK_ENTRY(data));
+	gboolean visible = matchesFilter(item, filter);
+	g_free(item);
+	return visible;
+}
+
+static int get_selected_index(TabData* data)
+{
+	GtkTreeSelection* selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(data->treeview));
+	GtkTreeModel* model;
+	GtkTreeIter iter;
+	if (!gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		return -1;
+	}
+
+	int index;
+	gtk_tree_model_get(model, &iter, COLUMN_INDEX, &index, -1);
+	return index;
+}
+
+static void select_index(TabData* data, int index)
+{
+	if (index < 0) {
+		return;
+	}
+
+	GtkTreeModel* model = gtk_tree_view_get_model(GTK_TREE_VIEW(data->treeview));
+	GtkTreeIter iter;
+	gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+	while (valid) {
+		int row_index;
+		gtk_tree_model_get(model, &iter, COLUMN_INDEX, &row_index, -1);
+		if (row_index == index) {
+			GtkTreeSelection* selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(data->treeview));
+			gtk_tree_selection_select_iter(selection, &iter);
+			return;
+		}
+		valid = gtk_tree_model_iter_next(model, &iter);
+	}
+}
+
+static void on_filter_changed(GtkSearchEntry* entry, gpointer user_data)
+{
+	(void)entry;
+	TabsContext* ctx = (TabsContext*)user_data;
+	TabData* tabs[] = { ctx->tab1, ctx->tab2, ctx->tab3 };
+
+	for (int i = 0; i < 3; i++) {
+		int selection = get_selected_index(tabs[i]);
+		gtk_tree_model_filter_refilter(tabs[i]->filter);
+		select_index(tabs[i], selection);
+	}
+}
+
 static void button_callback(gpointer data)
 {
 	TabData* tab_data = (TabData*)data;
-	GtkWidget* treeview = tab_data->treeview;
-
-	GtkTreeSelection* selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
-	GtkTreeModel* model;
-	GtkTreeIter iter;
-	if (gtk_tree_selection_get_selected(selection, &model, &iter))
-	{
-		gtk_tree_model_get(model, &iter, COLUMN_INDEX, &tab_data->selected_index, -1);
+	tab_data->selected_index = get_selected_index(tab_data);
+	if (tab_data->selected_index >= 0) {
 		gtk_main_quit();
 	}
 }
@@ -83,7 +137,7 @@ static void on_ok_button_clicked(GtkButton* button, gpointer user_data)
 	button_callback(data);
 }
 
-GtkWidget* create_treeview(const char** items, int count, int initial_selection, int* selected_index)
+GtkWidget* create_treeview(const char** items, int count, int initial_selection, GtkWidget* search_entry, GtkTreeModelFilter** filter_out)
 {
 	GtkListStore* store = gtk_list_store_new(
 		2, // 2 columns
@@ -96,19 +150,14 @@ GtkWidget* create_treeview(const char** items, int count, int initial_selection,
 		gtk_list_store_set(store, &iter, COLUMN_ITEM, items[i], COLUMN_INDEX, i, -1);
 	}
 
-	GtkWidget* treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
-	// Attached the selected index to the treeview so we can easily reference it in the button callback
-	g_object_set_data(G_OBJECT(treeview), "selected_index", &selected_index);
+	GtkTreeModel* filter = gtk_tree_model_filter_new(GTK_TREE_MODEL(store), NULL);
+	gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter), filter_visible, search_entry, NULL);
+	GtkWidget* treeview = gtk_tree_view_new_with_model(filter);
+	*filter_out = GTK_TREE_MODEL_FILTER(filter);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(treeview), FALSE);
 
 	GtkTreeSelection* treeselection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 	gtk_tree_selection_set_mode(treeselection, GTK_SELECTION_SINGLE);
-
-	if (initial_selection < count && initial_selection >= 0) {
-		GtkTreePath* path = gtk_tree_path_new_from_indices(initial_selection, -1);
-		gtk_tree_selection_select_path(treeselection, path);
-		gtk_tree_path_free(path);
-	}
 
 	GtkCellRenderer* renderer = gtk_cell_renderer_text_new();
 	gtk_tree_view_insert_column_with_attributes(
@@ -121,6 +170,13 @@ GtkWidget* create_treeview(const char** items, int count, int initial_selection,
 		NULL
 	);
 
+	if (initial_selection < count) {
+		TabData data = { treeview, GTK_TREE_MODEL_FILTER(filter), -1, -1, 0 };
+		select_index(&data, initial_selection);
+	}
+
+	g_object_unref(store);
+	g_object_unref(filter);
 	return treeview;
 }
 
@@ -147,6 +203,10 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	gtk_widget_set_name(box, "box");
 	gtk_container_add(GTK_CONTAINER(window), box);
 
+	GtkWidget* search_entry = gtk_search_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(search_entry), "Filter games...");
+	gtk_box_pack_start(GTK_BOX(box), search_entry, FALSE, FALSE, 0);
+
 	// Tabs via GtkNotebook
 	GtkWidget* notebook = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(box), notebook, TRUE, TRUE, 0);
@@ -164,7 +224,8 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	// Non-Steam apps tab
 	TabData* nonsteam_data = g_new0(TabData, 1);
 	nonsteam_data->tab_index = 0;
-	nonsteam_data->treeview = create_treeview(nonSteamList, nonSteamCount, selection, &nonsteam_data->selected_index);
+	nonsteam_data->selected_index = -1;
+	nonsteam_data->treeview = create_treeview(nonSteamList, nonSteamCount, selectionTab == 0 ? selection : -1, search_entry, &nonsteam_data->filter);
 
 	GtkWidget* scroll1 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll1), nonsteam_data->treeview);
@@ -173,7 +234,8 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	// Mods tab
 	TabData* mods_data = g_new0(TabData, 1);
 	mods_data->tab_index = 1;
-	mods_data->treeview = create_treeview(modsList, modsCount, selection, &mods_data->selected_index);
+	mods_data->selected_index = -1;
+	mods_data->treeview = create_treeview(modsList, modsCount, selectionTab == 1 ? selection : -1, search_entry, &mods_data->filter);
 
 	GtkWidget* scroll2 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll2), mods_data->treeview);
@@ -182,7 +244,8 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	// Steam tab
 	TabData* steam_data = g_new0(TabData, 1);
 	steam_data->tab_index = 2;
-	steam_data->treeview = create_treeview(steamList, steamCount, selection, &steam_data->selected_index);
+	steam_data->selected_index = -1;
+	steam_data->treeview = create_treeview(steamList, steamCount, selectionTab == 2 ? selection : -1, search_entry, &steam_data->filter);
 
 	GtkWidget* scroll3 = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(scroll3), steam_data->treeview);
@@ -192,6 +255,7 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	context->tab1 = nonsteam_data;
 	context->tab2 = mods_data;
 	context->tab3 = steam_data;
+	g_signal_connect(search_entry, "search-changed", G_CALLBACK(on_filter_changed), context);
 
 	// Button contianer
 	GtkWidget* buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
@@ -238,12 +302,17 @@ int SelectionDialog(const char* title, int nonSteamCount, const char** nonSteamL
 	// Clean up and return
 	TabData* final_tabdata = (TabData*)g_object_get_data(G_OBJECT(ok_button), "tabdata");
 	int final_selection = final_tabdata->selected_index;
+	int final_tab_index = final_tabdata->tab_index;
+	gtk_widget_destroy(window);
 	g_free(nonsteam_data);
 	g_free(mods_data);
 	g_free(steam_data);
+	g_free(context);
 
-	if (final_tabdata->tab_index > 0) {
+	if (final_selection >= 0 && final_tab_index == 1) {
 		final_selection += nonSteamCount;
+	} else if (final_selection >= 0 && final_tab_index == 2) {
+		final_selection += nonSteamCount + modsCount;
 	}
 	return final_selection;
 }

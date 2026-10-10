@@ -2,6 +2,7 @@
 // https://developer.apple.com/documentation/appkit?language=objc
 
 #include "gui-helper.h"
+#include "string-helpers.h"
 #include <stdlib.h>
 #include <string.h>
 #include <Cocoa/Cocoa.h>
@@ -50,6 +51,10 @@ int ShowMessageBox(const char *title, const char *message)
 @property (nonatomic, weak) NSTableView* modsTable;
 @property (nonatomic, weak) NSTableView* steamTable;
 @property (nonatomic, weak) NSButton* okButton;
+@property (nonatomic, weak) NSSearchField* searchField;
+@property (nonatomic, strong) NSArray<NSNumber*>* nonSteamRows;
+@property (nonatomic, strong) NSArray<NSNumber*>* modsRows;
+@property (nonatomic, strong) NSArray<NSNumber*>* steamRows;
 
 - (id)initWithTitle:(const char*)title
       nonSteamItems:(const char**)nsItems
@@ -61,8 +66,13 @@ int ShowMessageBox(const char *title, const char *message)
          initialTab:(int)initialTab
    initialSelection:(int)initialSelection;
 
+- (NSArray<NSNumber*>*)filteredRowsForItems:(const char**)items count:(int)count;
+- (NSArray<NSNumber*>*)rowsForTable:(NSTableView*)tableView;
+- (NSInteger)selectedOriginalIndexForTable:(NSTableView*)tableView;
+- (void)restoreOriginalIndex:(NSInteger)index forTable:(NSTableView*)tableView;
 - (NSScrollView*)buildScrollingTableWithTag:(NSInteger)tag outTableView:(NSTableView**)outTableView;
 - (void)segmentChanged:(id)sender;
+- (void)searchChanged:(id)sender;
 - (void)okClicked:(id)sender;
 - (void)cancelClicked:(id)sender;
 
@@ -111,6 +121,19 @@ int ShowMessageBox(const char *title, const char *message)
 
     NSView* contentView = [window contentView];
 
+    NSSearchField* searchField = [[NSSearchField alloc] initWithFrame:NSMakeRect(10, 320, 434, 24)];
+    [searchField setPlaceholderString:@"Filter games..."];
+    [searchField setAutoresizingMask:(NSViewWidthSizable | NSViewMinYMargin)];
+    [searchField setSendsSearchStringImmediately:YES];
+    [searchField setTarget:self];
+    [searchField setAction:@selector(searchChanged:)];
+    self.searchField = searchField;
+    [contentView addSubview:searchField];
+
+    self.nonSteamRows = [self filteredRowsForItems:nonSteamItems count:nonSteamCount];
+    self.modsRows = [self filteredRowsForItems:modsItems count:modsCount];
+    self.steamRows = [self filteredRowsForItems:steamItems count:steamCount];
+
     // Segmented control switches between three lists
     NSSegmentedControl* segmentedControl = [
         NSSegmentedControl segmentedControlWithLabels:@[@"Non-Steam", @"GoldSrc/Source Mods", @"Steam"]
@@ -126,7 +149,7 @@ int ShowMessageBox(const char *title, const char *message)
 
     NSTableView* nonSteamTable = nil;
     NSScrollView* nonSteamScroll = [self buildScrollingTableWithTag:0 outTableView:&nonSteamTable];
-    [nonSteamScroll setFrame:NSMakeRect(10, 50, 434, 294)];
+    [nonSteamScroll setFrame:NSMakeRect(10, 50, 434, 260)];
     [nonSteamScroll setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     self.nonSteamTable = nonSteamTable;
     self.nonSteamScrollView = nonSteamScroll;
@@ -134,7 +157,7 @@ int ShowMessageBox(const char *title, const char *message)
 
     NSTableView* modsTable = nil;
     NSScrollView* modsScroll = [self buildScrollingTableWithTag:1 outTableView:&modsTable];
-    [modsScroll setFrame:NSMakeRect(10, 50, 434, 294)];
+    [modsScroll setFrame:NSMakeRect(10, 50, 434, 260)];
     [modsScroll setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     self.modsTable = modsTable;
     self.modsScrollView = modsScroll;
@@ -142,7 +165,7 @@ int ShowMessageBox(const char *title, const char *message)
 
     NSTableView* steamTable = nil;
     NSScrollView* steamScroll = [self buildScrollingTableWithTag:2 outTableView:&steamTable];
-    [steamScroll setFrame:NSMakeRect(10, 50, 434, 294)];
+    [steamScroll setFrame:NSMakeRect(10, 50, 434, 260)];
     [steamScroll setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
     self.steamTable = steamTable;
     self.steamScrollView = steamScroll;
@@ -186,15 +209,84 @@ int ShowMessageBox(const char *title, const char *message)
         initialTable = steamTable;
         initialCount = steamCount;
     }
-    if (initialSelection >= 0 && initialSelection < initialCount) {
-        [initialTable selectRowIndexes:[NSIndexSet indexSetWithIndex:initialSelection] byExtendingSelection:NO];
-        [initialTable scrollRowToVisible:initialSelection];
+    NSArray<NSNumber*>* initialRows = [self rowsForTable:initialTable];
+    NSUInteger initialRow = [initialRows indexOfObject:@(initialSelection)];
+    if (initialSelection >= 0 && initialSelection < initialCount && initialRow != NSNotFound) {
+        [initialTable selectRowIndexes:[NSIndexSet indexSetWithIndex:initialRow] byExtendingSelection:NO];
+        [initialTable scrollRowToVisible:initialRow];
         [self.okButton setEnabled:YES];
     } else {
         [self.okButton setEnabled:NO];
     }
 
     return self;
+}
+
+- (NSArray<NSNumber*>*)filteredRowsForItems:(const char**)items count:(int)count
+{
+    NSMutableArray<NSNumber*>* rows = [NSMutableArray array];
+    const char* filter = [[self.searchField stringValue] UTF8String];
+    for (int i = 0; i < count; i++) {
+        if (matchesFilter(items[i], filter)) {
+            [rows addObject:@(i)];
+        }
+    }
+    return rows;
+}
+
+- (NSArray<NSNumber*>*)rowsForTable:(NSTableView*)tableView
+{
+    switch ([tableView tag]) {
+        case 0: return self.nonSteamRows;
+        case 1: return self.modsRows;
+        case 2: return self.steamRows;
+        default: return @[];
+    }
+}
+
+- (NSInteger)selectedOriginalIndexForTable:(NSTableView*)tableView
+{
+    NSInteger row = [tableView selectedRow];
+    NSArray<NSNumber*>* rows = [self rowsForTable:tableView];
+    if (row < 0 || row >= (NSInteger)[rows count]) {
+        return -1;
+    }
+    return [rows[row] integerValue];
+}
+
+- (void)restoreOriginalIndex:(NSInteger)index forTable:(NSTableView*)tableView
+{
+    if (index < 0) {
+        return;
+    }
+
+    NSUInteger row = [[self rowsForTable:tableView] indexOfObject:@(index)];
+    if (row != NSNotFound) {
+        [tableView selectRowIndexes:[NSIndexSet indexSetWithIndex:row] byExtendingSelection:NO];
+        [tableView scrollRowToVisible:row];
+    }
+}
+
+- (void)searchChanged:(id)sender
+{
+    (void)sender;
+    NSInteger nonSteamSelection = [self selectedOriginalIndexForTable:self.nonSteamTable];
+    NSInteger modsSelection = [self selectedOriginalIndexForTable:self.modsTable];
+    NSInteger steamSelection = [self selectedOriginalIndexForTable:self.steamTable];
+
+    self.nonSteamRows = [self filteredRowsForItems:nonSteamItems count:nonSteamCount];
+    self.modsRows = [self filteredRowsForItems:modsItems count:modsCount];
+    self.steamRows = [self filteredRowsForItems:steamItems count:steamCount];
+    [self.nonSteamTable reloadData];
+    [self.modsTable reloadData];
+    [self.steamTable reloadData];
+
+    [self restoreOriginalIndex:nonSteamSelection forTable:self.nonSteamTable];
+    [self restoreOriginalIndex:modsSelection forTable:self.modsTable];
+    [self restoreOriginalIndex:steamSelection forTable:self.steamTable];
+
+    NSTableView* activeTable = [self tableViewForSegment:[self.segmentedControl selectedSegment]];
+    [self.okButton setEnabled:([activeTable selectedRow] != -1)];
 }
 
 // Builds a headerless, single-column table view inside a scroll view.
@@ -253,7 +345,7 @@ int ShowMessageBox(const char *title, const char *message)
     NSInteger tabIndex = [self.segmentedControl selectedSegment];
     NSTableView* activeTable = [self tableViewForSegment:tabIndex];
 
-    NSInteger row = [activeTable selectedRow];
+    NSInteger row = [self selectedOriginalIndexForTable:activeTable];
     if (row < 0) {
         return; // nothing selected; OK should be disabled in this case anyway
     }
@@ -280,12 +372,7 @@ int ShowMessageBox(const char *title, const char *message)
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView*)tableView
 {
-    switch ([tableView tag]) {
-        case 0: return nonSteamCount;
-        case 1: return modsCount;
-        case 2: return steamCount;
-        default: return 0;
-    }
+    return [[self rowsForTable:tableView] count];
 }
 
 // Custom vertically centered item + 4 padding
@@ -313,10 +400,11 @@ int ShowMessageBox(const char *title, const char *message)
     }
 
     const char* str = NULL;
+    NSInteger originalRow = [[self rowsForTable:tableView][row] integerValue];
     switch ([tableView tag]) {
-        case 0: str = nonSteamItems[row]; break;
-        case 1: str = modsItems[row]; break;
-        case 2: str = steamItems[row]; break;
+        case 0: str = nonSteamItems[originalRow]; break;
+        case 1: str = modsItems[originalRow]; break;
+        case 2: str = steamItems[originalRow]; break;
         default: break;
     }
     cellView.textField.stringValue = NSStringFromCString(str);
